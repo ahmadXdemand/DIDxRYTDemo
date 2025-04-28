@@ -68,8 +68,8 @@ export default function WelcomePage() {
             animation: 'fadeIn 1s ease-out 1s both, slideUp 1s ease-out 1s both'
           }}
         >
-          <p className="text-blue-300">Redirecting to wallet connection...</p>
-          <div className="mt-4 w-48 h-1 bg-blue-500 mx-auto animate-loader"></div>
+          <p className="text-purple-300">Redirecting to wallet connection...</p>
+          <div className="mt-4 w-48 h-1 bg-purple-500 mx-auto animate-loader"></div>
         </div>
       </div>
     </div>

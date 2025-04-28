@@ -165,7 +165,7 @@ export default function MintingStep() {
                 
                 // Wait for transaction to be mined
                 setMintStatus("Waiting for transaction confirmation...");
-                await tx.wait();
+               
               } catch (contractError: any) {
                 console.error("Contract interaction error:", contractError);
                 setError(`Contract error: ${contractError.message || "Unknown contract error"}`);

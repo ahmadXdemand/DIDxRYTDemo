@@ -2,9 +2,83 @@
 
 import { useState, useEffect } from 'react';
 import { useDIDContext } from '../../context/DIDContext';
-import Image from 'next/image';
 import { performOcrWithGPT4o } from '@/utils/openaiService';
 import { IDInformation } from '@/types/id';
+
+// Material UI imports
+import {
+  Box,
+  Typography,
+  Paper,
+  Stack,
+  Divider,
+  LinearProgress,
+  Card,
+  CardContent,
+  Avatar,
+  Fade,
+  Chip,
+  useTheme,
+  alpha,
+  styled,
+  Alert
+} from '@mui/material';
+import Grid from '@mui/material/Grid';
+import {
+  Person as PersonIcon,
+  Event as EventIcon,
+  Badge as BadgeIcon,
+  Assignment as AssignmentIcon,
+  CheckCircle as CheckCircleIcon
+} from '@mui/icons-material';
+
+// Styled components
+const InfoCard = styled(Paper)(({ theme }) => ({
+  borderRadius: theme.shape.borderRadius * 2,
+  overflow: 'hidden',
+  boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-5px)',
+    boxShadow: '0 12px 20px rgba(0,0,0,0.15)',
+  },
+}));
+
+const InfoItem = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  marginBottom: theme.spacing(2),
+  padding: theme.spacing(1.5),
+  borderRadius: theme.shape.borderRadius,
+  backgroundColor: alpha(theme.palette.primary.main, 0.05),
+  '&:hover': {
+    backgroundColor: alpha(theme.palette.primary.main, 0.08),
+  }
+}));
+
+const SelfieImage = styled(Box)(({ theme }) => ({
+  position: 'relative',
+  width: '100%',
+  maxWidth: 200,
+  height: 200,
+  borderRadius: theme.shape.borderRadius * 2,
+  overflow: 'hidden',
+  boxShadow: '0 10px 20px rgba(0,0,0,0.15)',
+  border: `2px solid ${theme.palette.primary.main}`,
+  margin: '0 auto',
+}));
+
+const IDImage = styled(Box)(({ theme }) => ({
+  position: 'relative',
+  width: '100%',
+  height: 200,
+  borderRadius: theme.shape.borderRadius * 2,
+  overflow: 'hidden',
+  boxShadow: '0 10px 20px rgba(0,0,0,0.15)',
+  border: `2px solid ${theme.palette.primary.main}`,
+  margin: '0 auto',
+  marginBottom: theme.spacing(2),
+}));
 
 export default function ExtractionStep() {
   const { state, updateDIDData, markStepAsCompleted } = useDIDContext();
@@ -13,6 +87,8 @@ export default function ExtractionStep() {
   const [rawText, setRawText] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [useOpenAI, setUseOpenAI] = useState<boolean>(true);
+  const [extractionProgress, setExtractionProgress] = useState(0);
+  const theme = useTheme();
   
   // Mock data for display when not using OpenAI or as fallback
   const mockExtractedData: IDInformation = {
@@ -26,7 +102,8 @@ export default function ExtractionStep() {
       fileType: "image/jpeg",
       fileSize: "Unknown"
     },
-    confidence: 0.92
+    confidence: 0.92,
+    rawText: ""
   };
 
   // Extract data using OpenAI
@@ -38,13 +115,27 @@ export default function ExtractionStep() {
       
       setExtractionPhase('extracting');
       
+      // Update progress for UI feedback
+      let progress = 0;
+      const progressInterval = setInterval(() => {
+        progress += 5;
+        if (progress <= 90) {
+          setExtractionProgress(progress);
+        } else {
+          clearInterval(progressInterval);
+        }
+      }, 300);
+      
       // In demo mode, simulate delay then use mock data
       if (!useOpenAI) {
         await new Promise(resolve => setTimeout(resolve, 3000));
         setExtractedData(mockExtractedData);
         setRawText(JSON.stringify(mockExtractedData, null, 2));
         setExtractionPhase('processing');
+        clearInterval(progressInterval);
+        setExtractionProgress(95);
         await new Promise(resolve => setTimeout(resolve, 2000));
+        setExtractionProgress(100);
         return;
       }
       
@@ -53,14 +144,18 @@ export default function ExtractionStep() {
       setExtractedData(result.extractedInfo);
       setRawText(result.rawText || '');
       
+      clearInterval(progressInterval);
+      setExtractionProgress(95);
       setExtractionPhase('processing');
       await new Promise(resolve => setTimeout(resolve, 2000));
+      setExtractionProgress(100);
     } catch (error: any) {
       console.error("Error extracting data with OpenAI:", error);
       setError(error.message || "Failed to extract information from your ID");
       // Fallback to mock data in case of error
       setExtractedData(mockExtractedData);
       setRawText(JSON.stringify(mockExtractedData, null, 2));
+      setExtractionProgress(100);
     }
   };
 
@@ -72,6 +167,7 @@ export default function ExtractionStep() {
         if (state.didData.extractedInfo) {
           setExtractionPhase('complete');
           setExtractedData(state.didData.documentDetails as IDInformation || mockExtractedData);
+          setExtractionProgress(100);
           return;
         }
 
@@ -127,217 +223,235 @@ export default function ExtractionStep() {
     setUseOpenAI(!useOpenAI);
   };
 
-  // Render different content based on extraction phase
   const renderContent = () => {
-    switch (extractionPhase) {
-      case 'preparing':
-        return (
-          <div className="space-y-6 text-center">
-            <p className="text-gray-600 dark:text-gray-300">
-              Preparing your ID for extraction...
-            </p>
-            <div className="flex flex-col items-center justify-center">
-              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-              <p className="text-sm text-gray-500">Setting up AI analysis</p>
-            </div>
-          </div>
-        );
-      
-      case 'extracting':
-        return (
-          <div className="space-y-6 text-center">
-            <p className="text-gray-600 dark:text-gray-300">
-              Extracting information from your ID
-            </p>
-            <div className="relative w-64 h-64">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-full h-full flex items-center justify-center">
-                  {/* Stars animation */}
-                  <div className="absolute animate-pulse w-6 h-6 bg-blue-400 rounded-full" style={{ top: '20%', left: '20%', animationDelay: '0.1s' }}></div>
-                  <div className="absolute animate-pulse w-4 h-4 bg-blue-300 rounded-full" style={{ top: '70%', left: '30%', animationDelay: '0.5s' }}></div>
-                  <div className="absolute animate-pulse w-5 h-5 bg-blue-500 rounded-full" style={{ top: '40%', left: '80%', animationDelay: '0.7s' }}></div>
-                  <div className="absolute animate-pulse w-3 h-3 bg-blue-200 rounded-full" style={{ top: '60%', left: '50%', animationDelay: '0.3s' }}></div>
-                  <div className="absolute animate-pulse w-5 h-5 bg-blue-600 rounded-full" style={{ top: '30%', left: '60%', animationDelay: '0.9s' }}></div>
-                  <div className="absolute w-32 h-24 bg-gray-200 dark:bg-gray-700 rounded-md blur-sm"></div>
-                  <div className="absolute w-32 h-24 border-2 border-blue-500 rounded-md animate-ping opacity-50"></div>
-                </div>
-              </div>
-            </div>
-            <p className="text-sm text-blue-500 animate-pulse">Using {useOpenAI ? 'GPT-4o AI' : 'simulated AI'} to analyze your document...</p>
-          </div>
-        );
-      
-      case 'processing':
-        return (
-          <div className="space-y-6 text-center">
-            <p className="text-gray-600 dark:text-gray-300">
-              Processing your information
-            </p>
-            <div className="flex flex-col items-center justify-center">
-              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-              <div className="w-64 h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 animate-progress" style={{ width: '70%' }}></div>
-              </div>
-              <p className="text-sm text-gray-500 mt-2">Gathering your information...</p>
-            </div>
-          </div>
-        );
-      
-      case 'complete':
-        return (
-          <div className="space-y-6">
-            <div className="flex items-center justify-center mb-4">
-              <div className="rounded-full bg-green-100 dark:bg-green-900 p-3">
-                <svg className="h-8 w-8 text-green-600 dark:text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-              </div>
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white text-center">Information Extracted Successfully</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Left column: Images */}
-              <div className="space-y-4">
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Verified Documents</h4>
+    if (extractionPhase === 'preparing' || extractionPhase === 'extracting' || extractionPhase === 'processing') {
+      return (
+        <Box sx={{ width: '100%', maxWidth: 600, mx: 'auto' }}>
+          <LinearProgress 
+            variant="determinate" 
+            value={extractionProgress} 
+            sx={{ 
+              height: 10, 
+              borderRadius: 5,
+              mb: 2,
+              backgroundColor: alpha(theme.palette.primary.main, 0.1),
+              '& .MuiLinearProgress-bar': {
+                borderRadius: 5,
+                background: `linear-gradient(90deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.light} 100%)`,
+              }
+            }} 
+          />
+          <Typography variant="body2" color="text.secondary" align="center">
+            {extractionPhase === 'preparing' ? 'Preparing your ID for extraction...' : 
+             extractionPhase === 'extracting' ? 'Extracting information using OpenAI...' : 
+             'Processing and validating your information...'}
+          </Typography>
+        </Box>
+      );
+    } else if (extractionPhase === 'complete') {
+      return (
+        <Fade in={extractionPhase === 'complete'} timeout={800}>
+          <Box>
+            <Stack 
+              direction={{ xs: 'column', md: 'row' }} 
+              spacing={4} 
+              sx={{ width: '100%', maxWidth: 1000, mx: 'auto' }}
+            >
+              {/* Images Section */}
+              <Stack spacing={3} alignItems="center" sx={{ minWidth: { md: 240 } }}>
+                <Typography variant="subtitle1" color="text.secondary" fontWeight={500}>
+                  Verified Documents
+                </Typography>
                 
                 {/* ID Image */}
-                <div className="border p-2 rounded-md dark:border-gray-700">
-                  <p className="text-xs text-gray-500 mb-1">ID Document</p>
-                  <div className="h-36 bg-gray-100 dark:bg-gray-800 rounded relative overflow-hidden">
-                    {state.didData.ipfsUrl ? (
-                      <img 
-                        src={state.didData.ipfsUrl} 
-                        alt="ID Document" 
-                        className="w-full h-full object-contain"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        <p className="text-xs">ID image</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                {state.didData.ipfsUrl && (
+                  <IDImage>
+                    <img 
+                      src={state.didData.ipfsUrl} 
+                      alt="ID Document"
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                  </IDImage>
+                )}
                 
                 {/* Selfie/Liveness Image */}
-                <div className="border p-2 rounded-md dark:border-gray-700">
-                  <p className="text-xs text-gray-500 mb-1">Liveness Verification</p>
-                  <div className="h-36 bg-gray-100 dark:bg-gray-800 rounded relative overflow-hidden">
-                    {state.didData.livenessData ? (
+                {state.didData.livenessImage && (
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                      Liveness Verification
+                    </Typography>
+                    <SelfieImage>
                       <img 
-                        src={state.didData.livenessData} 
-                        alt="Liveness Check" 
-                        className="w-full h-full object-contain"
+                        src={state.didData.livenessImage} 
+                        alt="Liveness Check"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        <p className="text-xs">Liveness image</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                    </SelfieImage>
+                  </Box>
+                )}
                 
                 {/* Demo toggle */}
-                <div className="pt-2">
-                  <button 
-                    onClick={toggleUseOpenAI}
-                    className="text-xs bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 px-2 py-1 rounded text-gray-700 dark:text-gray-300"
-                  >
-                    {useOpenAI ? 'Using Real API' : 'Using Demo Data'}
-                  </button>
-                </div>
-              </div>
+                <Chip 
+                  label={useOpenAI ? "Using Real API" : "Using Demo Mode"} 
+                  color={useOpenAI ? "primary" : "default"}
+                  variant="outlined"
+                  onClick={toggleUseOpenAI}
+                  sx={{ mt: 2 }}
+                />
+              </Stack>
               
-              {/* Right column: Extracted Data */}
-              <div className="space-y-4">
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Extracted Information</h4>
-                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md space-y-3">
-                  {extractedData && Object.entries(extractedData).map(([key, value]: [string, any]) => {
-                    // Skip certain fields
-                    if (['confidence', 'rawText', 'metadata'].includes(key)) return null;
-                    
-                    return (
-                      <div key={key} className="grid grid-cols-2 gap-2 border-b border-gray-200 dark:border-gray-700 pb-2">
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                          {key === 'idNumber' ? 'Document Number' : (
-                            key.replace(/([A-Z])/g, ' $1')
-                            .replace(/^./, str => str.toUpperCase())
-                            .replace(/([a-z])([A-Z])/g, '$1 $2')
-                          )}
-                        </p>
-                        <p className="text-sm text-gray-800 dark:text-gray-200 text-right overflow-hidden overflow-ellipsis">
-                          {value?.toString() || '—'}
-                        </p>
-                      </div>
-                    );
-                  })}
+              {/* Info Section */}
+              <Box sx={{ flexGrow: 1 }}>
+                <InfoCard elevation={2} sx={{ p: 3 }}>
+                  <Typography variant="h6" gutterBottom color="primary.main" sx={{ mb: 3 }}>
+                    Extracted Information
+                  </Typography>
                   
-                  {/* Metadata fields */}
-                  {extractedData?.metadata && Object.entries(extractedData.metadata).map(([key, value]: [string, any]) => {
-                    if (['fileType', 'fileSize'].includes(key)) return null;
-                    
-                    return (
-                      <div key={key} className="grid grid-cols-2 gap-2 border-b border-gray-200 dark:border-gray-700 pb-2">
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                          {key.replace(/([A-Z])/g, ' $1')
-                            .replace(/^./, str => str.toUpperCase())
-                            .replace(/([a-z])([A-Z])/g, '$1 $2')}
-                        </p>
-                        <p className="text-sm text-gray-800 dark:text-gray-200 text-right overflow-hidden overflow-ellipsis">
-                          {value?.toString() || '—'}
-                        </p>
-                      </div>
-                    );
-                  })}
-
+                  <Stack spacing={2}>
+                    {extractedData && (
+                      <>
+                        <InfoItem>
+                          <PersonIcon sx={{ color: 'primary.main', mr: 2 }} />
+                          <Box>
+                            <Typography variant="caption" color="text.secondary">Full Name</Typography>
+                            <Typography variant="body1">{extractedData?.fullName || 'Not available'}</Typography>
+                          </Box>
+                        </InfoItem>
+                        
+                        <InfoItem>
+                          <EventIcon sx={{ color: 'primary.main', mr: 2 }} />
+                          <Box>
+                            <Typography variant="caption" color="text.secondary">Date of Birth</Typography>
+                            <Typography variant="body1">{extractedData?.dateOfBirth || 'Not available'}</Typography>
+                          </Box>
+                        </InfoItem>
+                        
+                        <InfoItem>
+                          <BadgeIcon sx={{ color: 'primary.main', mr: 2 }} />
+                          <Box>
+                            <Typography variant="caption" color="text.secondary">ID Number</Typography>
+                            <Typography variant="body1">{extractedData?.idNumber || 'Not available'}</Typography>
+                          </Box>
+                        </InfoItem>
+                        
+                        {/* Metadata fields */}
+                        {extractedData?.metadata && (
+                          <InfoItem>
+                            <AssignmentIcon sx={{ color: 'primary.main', mr: 2 }} />
+                            <Box>
+                              <Typography variant="caption" color="text.secondary">Document Details</Typography>
+                              {extractedData.metadata.documentType && (
+                                <Typography variant="body1">
+                                  Type: {extractedData.metadata.documentType}
+                                </Typography>
+                              )}
+                              {extractedData.metadata.issuingCountry && (
+                                <Typography variant="body1">
+                                  Country: {extractedData.metadata.issuingCountry}
+                                </Typography>
+                              )}
+                            </Box>
+                          </InfoItem>
+                        )}
+                      </>
+                    )}
+                  </Stack>
+                  
                   {/* Confidence score with visual indicator */}
                   {extractedData && extractedData.confidence && (
-                    <div className="mt-4">
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    <Box sx={{ mt: 3 }}>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
                         Extraction Confidence
-                      </p>
-                      <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full ${extractedData.confidence > 0.8 ? 'bg-green-500' : extractedData.confidence > 0.6 ? 'bg-yellow-500' : 'bg-red-500'}`} 
-                          style={{ width: `${extractedData.confidence * 100}%` }}
-                        ></div>
-                      </div>
-                      <p className="text-xs text-right mt-1 text-gray-500">
+                      </Typography>
+                      <LinearProgress
+                        variant="determinate"
+                        value={extractedData.confidence * 100}
+                        sx={{
+                          height: 8,
+                          borderRadius: 4,
+                          mb: 1,
+                          backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                          '& .MuiLinearProgress-bar': {
+                            borderRadius: 4,
+                            backgroundColor: extractedData.confidence > 0.8 
+                              ? 'success.main' 
+                              : extractedData.confidence > 0.6 
+                              ? 'warning.main' 
+                              : 'error.main',
+                          }
+                        }}
+                      />
+                      <Typography variant="caption" color="text.secondary" align="right" sx={{ display: 'block' }}>
                         {Math.round(extractedData.confidence * 100)}% confidence
-                      </p>
-                    </div>
+                      </Typography>
+                    </Box>
                   )}
                   
                   {/* Raw extraction text (collapsible) */}
                   {rawText && (
-                    <details className="mt-4 text-xs">
-                      <summary className="cursor-pointer text-blue-500 hover:text-blue-700">
+                    <Box 
+                      component="details" 
+                      sx={{ 
+                        mt: 3, 
+                        p: 2, 
+                        bgcolor: 'background.paper', 
+                        borderRadius: 1,
+                        border: '1px solid',
+                        borderColor: 'divider'
+                      }}
+                    >
+                      <Box component="summary" sx={{ cursor: 'pointer', color: 'primary.main', mb: 1 }}>
                         Show raw extraction data
-                      </summary>
-                      <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-900 rounded overflow-auto text-xs max-h-40">
+                      </Box>
+                      <Box 
+                        component="pre" 
+                        sx={{ 
+                          mt: 1, 
+                          p: 2, 
+                          bgcolor: alpha(theme.palette.primary.main, 0.05), 
+                          borderRadius: 1,
+                          fontSize: '0.75rem',
+                          overflow: 'auto',
+                          maxHeight: 200
+                        }}
+                      >
                         {rawText}
-                      </pre>
-                    </details>
+                      </Box>
+                    </Box>
                   )}
-                </div>
-              </div>
-            </div>
-
-            {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-md text-red-700 dark:text-red-400 text-sm">
-                {error}
-              </div>
-            )}
-          </div>
-        );
-      
-      default:
-        return null;
+                  
+                  {error && (
+                    <Alert 
+                      severity="error" 
+                      variant="outlined"
+                      sx={{ mt: 3 }}
+                    >
+                      {error}
+                    </Alert>
+                  )}
+                </InfoCard>
+              </Box>
+            </Stack>
+          </Box>
+        </Fade>
+      );
     }
+    
+    return null;
   };
 
   return (
-    <div className="w-full">
+    <Box sx={{ py: 3 }}>
+      <Typography 
+        variant="h6" 
+        align="center" 
+        color="text.secondary"
+        sx={{ maxWidth: 600, mx: 'auto', mb: 4 }}
+      >
+        Extracting and verifying your identity information
+      </Typography>
+
       {renderContent()}
-    </div>
+    </Box>
   );
 } 

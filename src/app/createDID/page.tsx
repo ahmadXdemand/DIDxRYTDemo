@@ -183,7 +183,7 @@ function DIDCreationContent() {
           </div>
         </div>
         
-        <h1 className="text-2xl font-bold mb-2 text-center text-gray-900 dark:text-white">Create Your DID</h1>
+        <h1 className="text-2xl font-bold mb-2 text-center text-[#784af4] dark:text-white">Create Your DID</h1>
         <p className="text-gray-600 dark:text-gray-400 text-center mb-8">Secure your digital identity on the blockchain</p>
         
         {/* Replace progress bar with Material-UI Stepper */}
