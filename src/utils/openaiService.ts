@@ -1,6 +1,7 @@
 import { IDInformation } from '../types/id';
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+// Get API key from environment variables
+const OPENAI_API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
 
 if (!OPENAI_API_KEY) {
   throw new Error('OPENAI_API_KEY is not defined in environment variables');

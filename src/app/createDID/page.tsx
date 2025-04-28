@@ -1,9 +1,13 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { ArrowLeftIcon, ArrowRightIcon, CheckIcon } from '@heroicons/react/24/solid';
+import { CheckIcon } from '@heroicons/react/24/solid';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { Button, Box, Typography, Paper, Chip } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 // Add window.ethereum type declaration
 declare global {
@@ -90,20 +94,46 @@ function DIDCreationContent() {
       
       case CreationStep.COMPLETED:
         return (
-          <div className="space-y-6 text-center">
-            <div className="flex items-center justify-center mb-4">
-              <div className="rounded-full bg-green-100 dark:bg-green-900 p-3">
-                <CheckIcon className="h-8 w-8 text-green-600 dark:text-green-300" />
-              </div>
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">DID Successfully Created!</h3>
-            <p className="text-gray-600 dark:text-gray-300">
+          <Box textAlign="center" sx={{ py: 3 }}>
+            <Box display="flex" alignItems="center" justifyContent="center" mb={3}>
+              <Box sx={{ 
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'primary.main',
+                borderRadius: '50%',
+                p: 1,
+                color: 'white'
+              }}>
+                <CheckCircleIcon fontSize="large" />
+              </Box>
+            </Box>
+            <Typography variant="h5" fontWeight="medium" color="text.primary" gutterBottom>
+              DID Successfully Created!
+            </Typography>
+            <Typography variant="body1" color="text.secondary" paragraph>
               Your decentralized identifier has been generated and linked to your wallet.
-            </p>
-            <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg text-sm font-mono break-all">
+            </Typography>
+            <Paper sx={{ 
+              p: 2, 
+              mt: 2, 
+              bgcolor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'primary.light',
+              borderRadius: 2,
+              fontFamily: 'monospace',
+              fontSize: 'sm',
+              wordBreak: 'break-all'
+            }}>
               did:ryt:{state.didData.didIdentifier || state.didData.walletAddress || "0x123456789abcdef0123456789abcdef01234567"}
-            </div>
-          </div>
+            </Paper>
+            <Chip 
+              label="Verified on Blockchain" 
+              color="primary" 
+              icon={<CheckCircleIcon />} 
+              sx={{ mt: 3 }} 
+            />
+          </Box>
         );
       
       default:
@@ -171,33 +201,27 @@ function DIDCreationContent() {
 
         {/* Navigation buttons */}
         <div className="flex justify-between mt-8">
-          <button
-            type="button"
+          <Button
+            variant="outlined"
+            color="primary"
             onClick={goToPreviousStep}
             disabled={state.currentStep === CreationStep.WALLET_CONNECTION}
-            className={`inline-flex items-center px-4 py-2 rounded-md ${
-              state.currentStep === CreationStep.WALLET_CONNECTION
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed dark:bg-gray-700'
-                : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600'
-            }`}
+            startIcon={<ArrowBackIcon />}
+            sx={{ px: 3, py: 1 }}
           >
-            <ArrowLeftIcon className="h-4 w-4 mr-2" />
             Back
-          </button>
+          </Button>
           
-          <button
-            type="button"
+          <Button
+            variant="contained"
+            color="primary"
             onClick={goToNextStep}
             disabled={state.currentStep === CreationStep.COMPLETED || !state.isStepCompleted}
-            className={`inline-flex items-center px-4 py-2 rounded-md ${
-              state.currentStep === CreationStep.COMPLETED || !state.isStepCompleted
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed dark:bg-gray-700'
-                : 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800'
-            }`}
+            endIcon={<ArrowForwardIcon />}
+            sx={{ px: 3, py: 1 }}
           >
             {state.currentStep === CreationStep.COMPLETED ? 'Finished' : 'Next'}
-            {state.currentStep !== CreationStep.COMPLETED && <ArrowRightIcon className="h-4 w-4 ml-2" />}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
