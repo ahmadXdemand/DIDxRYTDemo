@@ -98,11 +98,11 @@ export default function VerificationStep() {
             </svg>
           </div>
         </div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white">Information Verified Successfully</h3>
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white">Information Validated Successfully</h3>
         <p className="text-gray-600 dark:text-gray-400">
-          Your identity information has been verified and is ready for the next step.
+          Your identity information has been Validated and is ready for the next step.
         </p>
-        <p className="text-blue-600 text-sm">Click 'Next' to proceed to the minting step.</p>
+        <p className="text-didPurple text-sm">Click 'Next' to proceed to the minting step.</p>
       </div>
     );
   }
@@ -118,16 +118,16 @@ export default function VerificationStep() {
       
       <div className="space-y-6 text-center">
         <p className="text-gray-600 dark:text-gray-300">
-          Verifying your information...
+          Validating your information...
         </p>
         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-4">
           <div 
-            className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
+            className="bg-didPurple h-2.5 rounded-full transition-all duration-300" 
             style={{ width: `${animationProgress}%` }}
           ></div>
         </div>
         <div className="flex flex-col items-center justify-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-didPurple mb-4"></div>
           <p className="text-sm text-gray-500">This will only take a moment...</p>
         </div>
       </div>

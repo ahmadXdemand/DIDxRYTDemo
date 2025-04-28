@@ -89,8 +89,7 @@ function DIDCreationContent() {
       case CreationStep.MINTING:
         return <MintingStep />;
       
-      case CreationStep.FINALIZATION:
-        return <FinalizationStep />;
+     
       
       case CreationStep.COMPLETED:
         return (

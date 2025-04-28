@@ -6,8 +6,8 @@ export enum CreationStep {
   EXTRACTION = 3,
   VERIFICATION = 4,
   MINTING = 5,
-  FINALIZATION = 6,
-  COMPLETED = 7
+  COMPLETED = 6,
+  
 }
 
 // Define the steps configuration
@@ -15,9 +15,9 @@ export const steps = [
   { step: CreationStep.WALLET_CONNECTION, label: 'Connect Wallet', progress: 10 },
   { step: CreationStep.IMAGE_SELECTION, label: 'Select ID', progress: 20},
   { step: CreationStep.LIVENESS_VERIFICATION, label: 'Proof of Liveness', progress: 30 },
-  { step: CreationStep.EXTRACTION, label: 'Extract Info', progress: 40 },
-  { step: CreationStep.VERIFICATION, label: 'Verify', progress: 60 },
+  { step: CreationStep.EXTRACTION, label: 'Verify Info', progress: 40 },
+  { step: CreationStep.VERIFICATION, label: 'Validate Info', progress: 60 },
   { step: CreationStep.MINTING, label: 'Mint DID', progress: 80 },
-  { step: CreationStep.FINALIZATION, label: 'Finalize', progress: 95 },
   { step: CreationStep.COMPLETED, label: 'Complete', progress: 100 }
+  
 ]; 
