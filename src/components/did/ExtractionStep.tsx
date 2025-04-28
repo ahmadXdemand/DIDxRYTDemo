@@ -107,7 +107,7 @@ export default function ExtractionStep() {
   };
 
   // Extract data using OpenAI
-  const extractDataWithOpenAI = async (imageUrl: string): Promise<void> => {
+  const extractDataWithOpenAI = async (imageUrl: string): Promise<IDInformation | null> => {
     try {
       if (!imageUrl) {
         throw new Error("No image URL provided for extraction");
@@ -136,12 +136,13 @@ export default function ExtractionStep() {
         setExtractionProgress(95);
         await new Promise(resolve => setTimeout(resolve, 2000));
         setExtractionProgress(100);
-        return;
+        return mockExtractedData;
       }
       
       // Real OpenAI extraction
       const result = await performOcrWithGPT4o(imageUrl);
-      setExtractedData(result.extractedInfo);
+      const extractedInfo = result.extractedInfo;
+      setExtractedData(extractedInfo);
       setRawText(result.rawText || '');
       
       clearInterval(progressInterval);
@@ -149,6 +150,7 @@ export default function ExtractionStep() {
       setExtractionPhase('processing');
       await new Promise(resolve => setTimeout(resolve, 2000));
       setExtractionProgress(100);
+      return extractedInfo;
     } catch (error: any) {
       console.error("Error extracting data with OpenAI:", error);
       setError(error.message || "Failed to extract information from your ID");
@@ -156,6 +158,7 @@ export default function ExtractionStep() {
       setExtractedData(mockExtractedData);
       setRawText(JSON.stringify(mockExtractedData, null, 2));
       setExtractionProgress(100);
+      return null;
     }
   };
 
@@ -177,13 +180,13 @@ export default function ExtractionStep() {
         
         // Phase 2 & 3: Extract data with OpenAI (or mock)
         const imageUrl = state.didData.ipfsUrl || '';
-        await extractDataWithOpenAI(imageUrl);
+        const extractedInfo = await extractDataWithOpenAI(imageUrl);
         
         // Phase 4: Complete
         setExtractionPhase('complete');
         
         // Update the DID context with the extracted data
-        const dataToSave = extractedData || mockExtractedData;
+        const dataToSave = extractedInfo || mockExtractedData;
         updateDIDData({
           extractedInfo: true,
           fullName: dataToSave.fullName || mockExtractedData.fullName,

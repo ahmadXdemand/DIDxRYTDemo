@@ -25,6 +25,7 @@ import VerificationStep from '../../components/did/VerificationStep';
 import MintingStep from '../../components/did/MintingStep';
 import FinalizationStep from '../../components/did/FinalizationStep';
 import DIDStepper from '../../components/did/DIDStepper';
+import DIDProfileView from '../../components/did/DIDProfileView';
 
 // Import DID context provider
 import { DIDProvider, useDIDContext } from '../../context/DIDContext';
@@ -89,12 +90,10 @@ function DIDCreationContent() {
       case CreationStep.MINTING:
         return <MintingStep />;
       
-     
-      
       case CreationStep.COMPLETED:
         return (
-          <Box textAlign="center" sx={{ py: 3 }}>
-            <Box display="flex" alignItems="center" justifyContent="center" mb={3}>
+          <Box sx={{ width: '100%' }}>
+            <Box display="flex" alignItems="center" justifyContent="center" mb={2}>
               <Box sx={{ 
                 display: 'flex',
                 alignItems: 'center',
@@ -107,31 +106,12 @@ function DIDCreationContent() {
                 <CheckCircleIcon fontSize="large" />
               </Box>
             </Box>
-            <Typography variant="h5" fontWeight="medium" color="text.primary" gutterBottom>
+            <Typography variant="h5" fontWeight="medium" color="text.primary" gutterBottom align="center" sx={{ mb: 4 }}>
               DID Successfully Created!
             </Typography>
-            <Typography variant="body1" color="text.secondary" paragraph>
-              Your decentralized identifier has been generated and linked to your wallet.
-            </Typography>
-            <Paper sx={{ 
-              p: 2, 
-              mt: 2, 
-              bgcolor: 'background.paper',
-              border: '1px solid',
-              borderColor: 'primary.light',
-              borderRadius: 2,
-              fontFamily: 'monospace',
-              fontSize: 'sm',
-              wordBreak: 'break-all'
-            }}>
-              did:ryt:{state.didData.didIdentifier || state.didData.walletAddress || "0x123456789abcdef0123456789abcdef01234567"}
-            </Paper>
-            <Chip 
-              label="Verified on Blockchain" 
-              color="primary" 
-              icon={<CheckCircleIcon />} 
-              sx={{ mt: 3 }} 
-            />
+            
+            {/* Display the comprehensive DID Profile */}
+            <DIDProfileView />
           </Box>
         );
       
@@ -147,7 +127,7 @@ function DIDCreationContent() {
     // For extraction, we don't need the timer anymore since ExtractionStep handles its own state
     if (state.currentStep === CreationStep.MINTING && !state.didData.mintingComplete) {
       // We no longer need this timer as MintingStep handles its own state
-    } else if (state.currentStep === CreationStep.FINALIZATION && !state.didData.finalizationComplete) {
+    } else if (state.currentStep === CreationStep.COMPLETED && !state.didData.finalizationComplete) {
       // We no longer need this timer as FinalizationStep handles its own state
     }
     
