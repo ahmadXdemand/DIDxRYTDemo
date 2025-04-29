@@ -1,0 +1,15 @@
+<svg width="800" height="533" viewBox="0 0 800 533" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Base flag with 5 horizontal stripes -->
+  <rect width="800" height="533" fill="white"/>
+  <rect x="0" y="0" width="800" height="88.83" fill="#002B7F"/>
+  <rect x="0" y="88.83" width="800" height="88.83" fill="white"/>
+  <rect x="0" y="177.66" width="800" height="177.67" fill="#CE1126"/>
+  <rect x="0" y="355.33" width="800" height="88.83" fill="white"/>
+  <rect x="0" y="444.16" width="800" height="88.83" fill="#002B7F"/>
+  
+  <!-- Costa Rica Coat of Arms (simplified) -->
+  <circle cx="400" cy="266.5" r="60" fill="#F8E16E"/>
+  <path d="M400 226.5 C378.33 226.5 360.67 240.17 355 258.5H445C439.33 240.17 421.67 226.5 400 226.5Z" fill="#4B8F43"/>
+  <rect x="370" y="258.5" width="60" height="30" fill="#FFFFFF"/>
+  <path d="M370 288.5H430V306.5H370V288.5Z" fill="#002B7F"/>
+</svg> 

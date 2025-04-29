@@ -4,6 +4,102 @@ import { useState, useEffect } from 'react';
 import { useDIDContext } from '../../context/DIDContext';
 import { IDInformation } from '@/types/id';
 import { CreationStep } from '@/types/did';
+import { 
+  Box, 
+  Typography, 
+  Paper, 
+  CircularProgress, 
+  LinearProgress, 
+  Fade, 
+  Chip,
+  Stack,
+  useTheme,
+  alpha,
+  styled,
+  keyframes
+} from '@mui/material';
+import { 
+  VerifiedUser as VerifiedUserIcon,
+  Security as SecurityIcon,
+  Shield as ShieldIcon,
+  CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon
+} from '@mui/icons-material';
+
+// Animation keyframes
+const pulse = keyframes`
+  0% { box-shadow: 0 0 0 0 ${alpha('#784af4', 0.7)}; }
+  70% { box-shadow: 0 0 0 15px ${alpha('#784af4', 0)}; }
+  100% { box-shadow: 0 0 0 0 ${alpha('#784af4', 0)}; }
+`;
+
+const glowScan = keyframes`
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+`;
+
+const float = keyframes`
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+`;
+
+// Styled components
+const VerificationContainer = styled(Box)(({ theme }) => ({
+  padding: theme.spacing(4),
+  position: 'relative',
+  overflow: 'hidden',
+  borderRadius: theme.shape.borderRadius * 2,
+  background: `linear-gradient(145deg, ${alpha(theme.palette.background.paper, 0.7)}, ${alpha(theme.palette.background.paper, 0.4)})`,
+  backdropFilter: 'blur(10px)',
+  border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+  boxShadow: `0 10px 30px ${alpha(theme.palette.common.black, 0.1)}`,
+}));
+
+const GlowingIcon = styled(Box)(({ theme }) => ({
+  width: 80,
+  height: 80,
+  borderRadius: '50%',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: alpha(theme.palette.primary.main, 0.1),
+  color: theme.palette.primary.main,
+  animation: `${pulse} 2s infinite`,
+  '& svg': {
+    fontSize: 40,
+  },
+}));
+
+const ScanEffect = styled(Box)(({ theme }) => ({
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  height: '2px',
+  background: `linear-gradient(90deg, ${alpha(theme.palette.primary.main, 0)}, ${theme.palette.primary.main}, ${alpha(theme.palette.primary.main, 0)})`,
+  backgroundSize: '200% 200%',
+  animation: `${glowScan} 2s ease-in-out infinite`,
+  boxShadow: `0 0 10px ${theme.palette.primary.main}, 0 0 20px ${theme.palette.primary.main}`,
+  zIndex: 10,
+}));
+
+const VerificationSuccessIcon = styled(Box)(({ theme }) => ({
+  width: 100,
+  height: 100,
+  borderRadius: '50%',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: `linear-gradient(135deg, ${theme.palette.success.light}, ${theme.palette.success.main})`,
+  color: theme.palette.common.white,
+  boxShadow: `0 10px 20px ${alpha(theme.palette.success.main, 0.4)}`,
+  animation: `${float} 3s ease-in-out infinite`,
+  '& svg': {
+    fontSize: 60,
+  },
+}));
 
 export default function VerificationStep() {
   const { state, updateDIDData, markStepAsCompleted } = useDIDContext();
@@ -12,6 +108,7 @@ export default function VerificationStep() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [animationProgress, setAnimationProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const theme = useTheme();
   
   // Load extracted data from context and start verification process
   useEffect(() => {
@@ -81,62 +178,172 @@ export default function VerificationStep() {
   
   if (!verifiedData && !isVerifying) {
     return (
-      <div className="text-center py-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
-        <p className="text-gray-600 dark:text-gray-300">Loading extracted information...</p>
-      </div>
+      <Box sx={{ textAlign: 'center', py: 5 }}>
+        <CircularProgress 
+          size={60}
+          thickness={4}
+          sx={{ 
+            color: theme.palette.primary.main,
+            mb: 3
+          }} 
+        />
+        <Typography variant="body1" color="text.secondary">
+          Loading extracted information...
+        </Typography>
+      </Box>
     );
   }
   
   if (isCompleted) {
     return (
-      <div className="space-y-6 text-center">
-        <div className="flex items-center justify-center mb-4">
-          <div className="rounded-full bg-green-100 dark:bg-green-900 p-3">
-            <svg className="h-8 w-8 text-green-600 dark:text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-          </div>
-        </div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white">Information Validated Successfully</h3>
-        <p className="text-gray-600 dark:text-gray-400">
-          Your identity information has been Validated and is ready for the next step.
-        </p>
-        <p className="text-didPurple text-sm">Click 'Next' to proceed to the minting step.</p>
-      </div>
+      <Fade in={isCompleted} timeout={800}>
+        <Box sx={{ textAlign: 'center', py: 3 }}>
+          <Stack spacing={3} alignItems="center">
+            <VerificationSuccessIcon>
+              <CheckCircleIcon />
+            </VerificationSuccessIcon>
+            
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                fontWeight: 600,
+                background: `linear-gradient(90deg, ${theme.palette.success.main}, ${theme.palette.primary.main})`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                mb: 1
+              }}
+            >
+              Information Validated Successfully
+            </Typography>
+            
+            <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 450, mx: 'auto' }}>
+              Your identity information has been verified and is ready for the next step.
+            </Typography>
+            
+            <Box sx={{ mt: 2 }}>
+              <Chip 
+                label="Verified & Secured" 
+                color="primary" 
+                icon={<ShieldIcon />}
+                sx={{ 
+                  px: 2, 
+                  py: 3,
+                  borderRadius: '16px',
+                  fontWeight: 500,
+                  boxShadow: `0 4px 8px ${alpha(theme.palette.primary.main, 0.3)}`
+                }}
+              />
+            </Box>
+            
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: theme.palette.primary.main,
+                fontWeight: 500,
+                animation: `${pulse} 2s infinite`
+              }}
+            >
+              Click 'Next' to proceed to the minting step
+            </Typography>
+          </Stack>
+        </Box>
+      </Fade>
     );
   }
   
   return (
-    <div className="space-y-6">
-      <h3 className="text-lg font-medium text-gray-900 dark:text-white text-center">
-        Verifying Your Information
-      </h3>
-      <p className="text-gray-600 dark:text-gray-400 text-center">
-        Please wait while we verify your information...
-      </p>
+    <VerificationContainer>
+      {/* Scanning effect */}
+      <ScanEffect sx={{ top: animationProgress * 0.85 + '%' }} />
       
-      <div className="space-y-6 text-center">
-        <p className="text-gray-600 dark:text-gray-300">
-          Validating your information...
-        </p>
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-4">
-          <div 
-            className="bg-didPurple h-2.5 rounded-full transition-all duration-300" 
-            style={{ width: `${animationProgress}%` }}
-          ></div>
-        </div>
-        <div className="flex flex-col items-center justify-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-didPurple mb-4"></div>
-          <p className="text-sm text-gray-500">This will only take a moment...</p>
-        </div>
-      </div>
-      
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-md text-red-700 dark:text-red-400 text-sm">
-          {error}
-        </div>
-      )}
-    </div>
+      <Stack spacing={4} alignItems="center">
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            textAlign: 'center',
+            fontWeight: 600,
+            background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.primary.light})`,
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
+          }}
+        >
+          Verifying Your Identity
+        </Typography>
+        
+        <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', maxWidth: 450, mx: 'auto' }}>
+          Please wait while our advanced verification system analyzes and validates your information.
+        </Typography>
+        
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+          <GlowingIcon>
+            <SecurityIcon />
+          </GlowingIcon>
+        </Box>
+        
+        <Box sx={{ width: '100%', maxWidth: 480, mx: 'auto', mb: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
+            <VerifiedUserIcon fontSize="small" sx={{ mr: 1, color: 'primary.main' }} />
+            Verifying document authenticity...
+          </Typography>
+          <LinearProgress 
+            variant="determinate" 
+            value={animationProgress} 
+            sx={{ 
+              height: 8, 
+              borderRadius: 4,
+              mb: 3,
+              backgroundColor: alpha(theme.palette.primary.main, 0.1),
+              '& .MuiLinearProgress-bar': {
+                borderRadius: 4,
+                background: `linear-gradient(90deg, ${theme.palette.primary.light}, ${theme.palette.primary.main})`,
+              }
+            }} 
+          />
+          
+          <Stack 
+            direction="row" 
+            spacing={2} 
+            sx={{ 
+              mt: 4, 
+              p: 2, 
+              borderRadius: 2, 
+              bgcolor: alpha(theme.palette.background.paper, 0.5),
+              border: `1px dashed ${alpha(theme.palette.primary.main, 0.3)}` 
+            }}
+          >
+            <CircularProgress 
+              size={30} 
+              thickness={5} 
+              sx={{ color: theme.palette.primary.main }} 
+            />
+            <Box>
+              <Typography variant="body2" color="text.primary" fontWeight={500}>
+                Security Verification in Progress
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Multi-factor document analysis underway...
+              </Typography>
+            </Box>
+          </Stack>
+        </Box>
+        
+        {error && (
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 2, 
+              bgcolor: alpha(theme.palette.error.main, 0.1),
+              color: theme.palette.error.main,
+              borderRadius: 2,
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            <ErrorIcon sx={{ mr: 1 }} />
+            <Typography variant="body2">{error}</Typography>
+          </Paper>
+        )}
+      </Stack>
+    </VerificationContainer>
   );
 } 

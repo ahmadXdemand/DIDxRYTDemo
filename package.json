@@ -17,6 +17,7 @@
     "@tanstack/react-query": "^5.74.4",
     "axios": "^1.9.0",
     "ethers": "5.7.2",
+    "framer-motion": "^12.9.2",
     "next": "15.3.1",
     "openai": "^4.96.0",
     "pinata": "^2.2.1",
