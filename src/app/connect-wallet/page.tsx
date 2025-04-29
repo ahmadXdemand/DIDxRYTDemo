@@ -104,7 +104,7 @@ export default function ConnectWalletPage() {
         </h1>
         
         <p 
-          className="text-xl md:text-2xl text-blue-200"
+          className="text-xl md:text-2xl text-purple-200"
           style={{ 
             animation: 'fadeIn 1s ease-out 0.5s both, slideUp 1s ease-out 0.5s both'
           }}
@@ -121,12 +121,12 @@ export default function ConnectWalletPage() {
           {isChecking ? (
             <div className="flex flex-col items-center">
               <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-300 mb-2"></div>
-              <p className="text-blue-200">Checking wallet connection...</p>
+              <p className="text-purple-200">Checking wallet connection...</p>
             </div>
           ) : !account ? (
             <button 
               onClick={connectWallet} 
-              className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-full text-xl transition-all transform hover:scale-105"
+              className="bg-purple-500 hover:bg-blue-600 text-white px-8 py-4 rounded-full text-xl transition-all transform hover:scale-105"
             >
               Connect RYT Wallet
             </button>
@@ -135,8 +135,8 @@ export default function ConnectWalletPage() {
               <p className="text-green-400 text-xl">
                 Wallet Connected: {account.slice(0, 6)}...{account.slice(-4)}
               </p>
-              <p className="text-blue-300">Redirecting to DID creation...</p>
-              <div className="mt-4 w-48 h-1 bg-blue-500 mx-auto animate-loader"></div>
+              <p className="text-purple-300">Redirecting to DID creation...</p>
+              <div className="mt-4 w-48 h-1 bg-purple-500 mx-auto animate-loader"></div>
             </div>
           )}
         </div>

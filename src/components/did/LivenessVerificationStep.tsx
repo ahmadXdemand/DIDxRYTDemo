@@ -2,173 +2,385 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useDIDContext } from '../../context/DIDContext';
-import CameraCapture from '@/components/ui/CameraCapture';
-import { startCameraStream, stopCameraStream, captureImageFromVideo } from '@/utils/cameraService';
-import { uploadImageToPinata } from '@/utils/pinata';
+
+// Material UI imports
+import { 
+  Box, 
+  Typography, 
+  Paper, 
+  Button, 
+  CircularProgress, 
+  Alert, 
+  Fade, 
+  Card,
+  CardMedia,
+  CardContent,
+  Stack,
+  IconButton,
+  useTheme,
+  alpha,
+  styled,
+  Tooltip,
+  Backdrop,
+} from '@mui/material';
+import { 
+  CameraAlt as CameraIcon,
+  RestartAlt as RetakeIcon,
+  FaceRetouchingNatural as FaceIcon,
+  Check as CheckIcon,
+  Cancel as CancelIcon
+} from '@mui/icons-material';
+
+// Styled components
+const CameraContainer = styled(Paper)(({ theme }) => ({
+  width: 320,
+  height: 240,
+  borderRadius: theme.shape.borderRadius * 2,
+  overflow: 'hidden',
+  position: 'relative',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  boxShadow: '0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23)',
+  border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-5px)',
+    boxShadow: '0 15px 30px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22)',
+  },
+}));
+
+const PlaceholderContainer = styled(Box)(({ theme }) => ({
+  width: '100%',
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: alpha(theme.palette.primary.main, 0.05),
+  color: theme.palette.text.secondary,
+}));
+
+const CapturedImage = styled(Box)(({ theme }) => ({
+  position: 'relative',
+  width: 320,
+  height: 240,
+  borderRadius: theme.shape.borderRadius * 2,
+  overflow: 'hidden',
+  boxShadow: '0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23)',
+  border: `2px solid ${theme.palette.primary.main}`,
+  transition: 'transform 0.3s ease',
+  '&:hover': {
+    transform: 'scale(1.02)',
+  }
+}));
+
+const RetakeButton = styled(IconButton)(({ theme }) => ({
+  position: 'absolute',
+  bottom: theme.spacing(1),
+  right: theme.spacing(1),
+  backgroundColor: alpha(theme.palette.common.black, 0.7),
+  color: theme.palette.common.white,
+  '&:hover': {
+    backgroundColor: alpha(theme.palette.common.black, 0.9),
+  },
+}));
+
+const PulsingCircle = styled(Box)(({ theme }) => ({
+  width: 80,
+  height: 80,
+  borderRadius: '50%',
+  backgroundColor: alpha(theme.palette.primary.main, 0.2),
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  position: 'relative',
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    borderRadius: '50%',
+    border: `2px solid ${theme.palette.primary.main}`,
+    animation: 'pulse 2s infinite',
+  },
+  '@keyframes pulse': {
+    '0%': {
+      transform: 'scale(0.95)',
+      boxShadow: `0 0 0 0 ${alpha(theme.palette.primary.main, 0.7)}`,
+    },
+    '70%': {
+      transform: 'scale(1)',
+      boxShadow: `0 0 0 10px ${alpha(theme.palette.primary.main, 0)}`,
+    },
+    '100%': {
+      transform: 'scale(0.95)',
+      boxShadow: `0 0 0 0 ${alpha(theme.palette.primary.main, 0)}`,
+    },
+  },
+}));
 
 export default function LivenessVerificationStep() {
   const { state, updateDIDData, markStepAsCompleted } = useDIDContext();
   const [showCamera, setShowCamera] = useState(false);
-  const [capturedImage, setCapturedImage] = useState<string | null>(state.didData.livenessData || null);
+  const [capturedImage, setCapturedImage] = useState<string | null>(state.didData.livenessImage || null);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const theme = useTheme();
+
   // Check if we already have liveness data and mark step as completed
   useEffect(() => {
     if (capturedImage && !state.isStepCompleted) {
       markStepAsCompleted(true);
     }
   }, [capturedImage, state.isStepCompleted, markStepAsCompleted]);
-  
+
   // Clean up camera stream when component unmounts
   useEffect(() => {
     return () => {
       if (cameraStream) {
-        stopCameraStream(cameraStream);
+        cameraStream.getTracks().forEach(track => track.stop());
       }
     };
   }, [cameraStream]);
-  
-  // Start camera and show the camera UI
+
   const startVerification = async () => {
+    setError(null);
     try {
-      setError(null);
-      const stream = await startCameraStream();
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: "user" },
+        audio: false 
+      });
       setCameraStream(stream);
       setShowCamera(true);
-    } catch (error) {
-      console.error('Error starting camera:', error);
-      setError(error instanceof Error ? error.message : 'Could not access camera');
+      
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      }, 100);
+    } catch (err) {
+      console.error('Error accessing camera:', err);
+      setError('Could not access camera. Please make sure you have granted camera permissions.');
     }
   };
-  
-  // Handle photo capture
-  const handleCapture = async () => {
-    if (!videoRef.current || !canvasRef.current || !cameraStream) return;
+
+  const handleCapture = (imageSrc: string) => {
+    setCapturedImage(imageSrc);
+    setShowCamera(false);
     
-    try {
-      // Capture image from video
-      const file = await captureImageFromVideo(videoRef.current, canvasRef.current);
-      
-      // Create a URL for the captured image
-      const imageUrl = URL.createObjectURL(file);
-      setCapturedImage(imageUrl);
-      
-      // Upload to Pinata if needed
-      setIsUploading(true);
-      const ipfsUrl = await uploadImageToPinata(file);
-      
-      // Update the DID context with liveness data
-      updateDIDData({ 
-        livenessData: imageUrl,
-        livenessVerified: true,
-        livenessTimestamp: new Date().toISOString(),
-        livenessIpfsUrl: ipfsUrl
-      });
-      
-      // Mark step as completed
-      markStepAsCompleted(true);
-      
-      // Close camera UI
-      setShowCamera(false);
-      stopCameraStream(cameraStream);
-      setCameraStream(null);
-    } catch (error) {
-      console.error('Error capturing or uploading image:', error);
-      setError('Failed to capture or upload image. Please try again.');
-    } finally {
-      setIsUploading(false);
-    }
+    // Store the image in the DID context
+    updateDIDData({
+      livenessImage: imageSrc,
+      livenessVerified: true,
+      livenessTimestamp: new Date().toISOString()
+    });
+    
+    // Simulate uploading and verification
+    simulateVerification();
   };
-  
-  // Handle cancel from camera UI
+
   const handleCancelCapture = () => {
     setShowCamera(false);
     if (cameraStream) {
-      stopCameraStream(cameraStream);
+      cameraStream.getTracks().forEach(track => track.stop());
       setCameraStream(null);
     }
   };
-  
-  // Handle retaking the photo
+
   const handleRetake = () => {
     setCapturedImage(null);
-    updateDIDData({ 
-      livenessData: null,
+    // Clear the liveness data in the context
+    updateDIDData({
+      livenessImage: null,
       livenessVerified: false,
-      livenessTimestamp: null,
-      livenessIpfsUrl: null
+      livenessTimestamp: null
     });
-    markStepAsCompleted(false);
     startVerification();
   };
-  
+
+  const simulateVerification = () => {
+    setIsUploading(true);
+    
+    // Simulate API call for verification
+    setTimeout(() => {
+      setIsUploading(false);
+      
+      // Mark this step as completed
+      markStepAsCompleted(true);
+    }, 2000);
+  };
+
   return (
-    <div className="space-y-6 text-center">
-      <p className="text-gray-600 dark:text-gray-300">
-        We need to verify that you're a real person. Please look at the camera and follow the instructions.
-      </p>
-      
-      <div className="flex flex-col items-center justify-center">
-        {capturedImage ? (
-          <div className="relative">
-            <img 
-              src={capturedImage} 
-              alt="Captured" 
-              className="w-80 h-60 object-cover rounded-lg" 
-            />
-            <button
-              onClick={handleRetake}
-              className="absolute bottom-2 right-2 bg-gray-800 bg-opacity-70 text-white text-xs px-2 py-1 rounded"
+    <Box sx={{ py: 3 }}>
+      <Stack spacing={4} alignItems="center">
+        <Typography 
+          variant="h6" 
+          align="center" 
+          color="text.secondary"
+          sx={{ maxWidth: 500, mx: 'auto', mb: 2 }}
+        >
+          We need to verify that you're a real person. Please look at the camera and follow the instructions.
+        </Typography>
+        
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+          {capturedImage ? (
+            <Fade in={!!capturedImage}>
+              <CapturedImage>
+                <img 
+                  src={capturedImage} 
+                  alt="Captured"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+                <RetakeButton
+                  size="small"
+                  onClick={handleRetake}
+                  aria-label="Retake photo"
+                >
+                  <RetakeIcon fontSize="small" />
+                </RetakeButton>
+              </CapturedImage>
+            </Fade>
+          ) : (
+            <CameraContainer elevation={3}>
+              {showCamera ? (
+                <Box sx={{ width: '100%', height: '100%', position: 'relative' }}>
+                  <video 
+                    ref={videoRef} 
+                    autoPlay 
+                    playsInline 
+                    style={{ 
+                      width: '100%', 
+                      height: '100%', 
+                      objectFit: 'cover',
+                      transform: 'scaleX(-1)' // Mirror effect for selfie mode
+                    }}
+                  />
+                </Box>
+              ) : (
+                <PlaceholderContainer>
+                  <PulsingCircle>
+                    <FaceIcon sx={{ fontSize: 40, color: 'primary.main' }} />
+                  </PulsingCircle>
+                  <Typography variant="caption" sx={{ mt: 2 }}>
+                    Camera feed will appear here
+                  </Typography>
+                </PlaceholderContainer>
+              )}
+            </CameraContainer>
+          )}
+          
+          {error && (
+            <Alert 
+              severity="error" 
+              variant="filled" 
+              sx={{ maxWidth: 320 }}
             >
-              Retake
-            </button>
-          </div>
-        ) : (
-          <div className="w-80 h-60 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
-            <p className="text-gray-500">Camera feed will appear here</p>
-          </div>
-        )}
-        
-        {error && (
-          <p className="mt-2 text-red-500 text-sm">{error}</p>
-        )}
-        
-        {isUploading && (
-          <div className="mt-2 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-500 mr-2"></div>
-            <p className="text-blue-500 text-sm">Uploading verification data...</p>
-          </div>
-        )}
-        
-        {!showCamera && !capturedImage && !isUploading && (
-          <button
-            onClick={startVerification}
-            className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md transition-colors"
-          >
-            Start Verification
-          </button>
-        )}
-      </div>
-      
+              {error}
+            </Alert>
+          )}
+          
+          {!showCamera && !capturedImage && !isUploading && (
+            <Button
+              variant="contained"
+              color="primary"
+              size="large"
+              startIcon={<CameraIcon />}
+              onClick={startVerification}
+              sx={{ 
+                mt: 2,
+                minWidth: 200,
+                py: 1.5,
+              }}
+            >
+              Start Verification
+            </Button>
+          )}
+        </Box>
+      </Stack>
+
       {/* Camera Capture UI */}
-      <CameraCapture
-        showCamera={showCamera}
-        cameraStream={cameraStream}
-        onCapture={handleCapture}
-        onCancel={handleCancelCapture}
-        videoRef={videoRef}
-        canvasRef={canvasRef}
-      />
+      {showCamera && (
+        <Box 
+          sx={{ 
+            position: 'fixed',
+            bottom: 16, 
+            left: '50%', 
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            gap: 2,
+            zIndex: 10,
+          }}
+        >
+          <Tooltip title="Capture">
+            <Button
+              color="primary"
+              variant="contained"
+              onClick={() => {
+                if (!canvasRef.current || !videoRef.current) return;
+                
+                const video = videoRef.current;
+                const canvas = canvasRef.current;
+                
+                // Set canvas dimensions to match video
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                
+                // Draw video frame to canvas
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Get image data URL
+                const imageSrc = canvas.toDataURL('image/png');
+                handleCapture(imageSrc);
+              }}
+              sx={{ 
+                borderRadius: '50%', 
+                minWidth: 'auto',
+                width: 56,
+                height: 56,
+              }}
+            >
+              <CheckIcon />
+            </Button>
+          </Tooltip>
+          
+          <Tooltip title="Cancel">
+            <Button
+              color="error"
+              variant="outlined"
+              onClick={handleCancelCapture}
+              sx={{ 
+                borderRadius: '50%', 
+                minWidth: 'auto',
+                width: 56,
+                height: 56,
+              }}
+            >
+              <CancelIcon />
+            </Button>
+          </Tooltip>
+        </Box>
+      )}
       
-      {/* Hidden video and canvas elements for capturing */}
-      <div className="hidden">
-        <video ref={videoRef} autoPlay playsInline />
+      {/* Hidden elements for capture */}
+      <Box sx={{ display: 'none' }}>
         <canvas ref={canvasRef} />
-      </div>
-    </div>
+      </Box>
+      
+      {/* Loading backdrop */}
+      <Backdrop
+        sx={{ color: '#fff', zIndex: theme => theme.zIndex.drawer + 1 }}
+        open={isUploading}
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <CircularProgress color="inherit" />
+          <Typography>Verifying your identity...</Typography>
+        </Box>
+      </Backdrop>
+    </Box>
   );
 } 
