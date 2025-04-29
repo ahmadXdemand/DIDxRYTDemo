@@ -1,10 +1,29 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDIDContext } from '../../context/DIDContext';
 import { ethers } from 'ethers';
 import { createDidMetadata, mintDidToken } from '@/utils/contractUtils';
 import { CreationStep } from '@/types/did';
+import {
+  Box,
+  Typography,
+  LinearProgress,
+  CircularProgress,
+  Paper,
+  Stack,
+  Chip,
+  Fade,
+  useTheme,
+  alpha,
+  styled,
+  keyframes
+} from '@mui/material';
+import {
+  CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon,
+  LinkOutlined as LinkIcon
+} from '@mui/icons-material';
 
 declare global {
   interface Window {
@@ -36,7 +55,126 @@ const CONTRACT_ABI = [
 // Placeholder Token URI - will be replaced with actual metadata
 const TOKEN_URI = "https://green-manual-tapir-637.mypinata.cloud/ipfs/bafkreiaapyrob3rqaxquyfd7lh4wclbtm5ooynxms5y23izagctpboe2zq";
 
+// Define keyframes for animations
+const pulse = keyframes`
+  0% { box-shadow: 0 0 0 0 ${alpha('#784af4', 0.7)}; }
+  70% { box-shadow: 0 0 0 15px ${alpha('#784af4', 0)}; }
+  100% { box-shadow: 0 0 0 0 ${alpha('#784af4', 0)}; }
+`;
+
+const float = keyframes`
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+`;
+
+const glow = keyframes`
+  0% { filter: drop-shadow(0 0 2px ${alpha('#784af4', 0.5)}); }
+  50% { filter: drop-shadow(0 0 8px ${alpha('#784af4', 0.8)}); }
+  100% { filter: drop-shadow(0 0 2px ${alpha('#784af4', 0.5)}); }
+`;
+
+// Create styled components
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(4),
+  borderRadius: theme.shape.borderRadius * 2,
+  backgroundColor: alpha(theme.palette.background.paper, 0.8),
+  backdropFilter: 'blur(10px)',
+  boxShadow: `0 10px 30px ${alpha(theme.palette.common.black, 0.1)}`,
+  position: 'relative',
+  overflow: 'hidden',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '4px',
+    background: `linear-gradient(90deg, ${alpha('#784af4', 0.8)}, ${alpha('#784af4', 0.2)})`,
+  }
+}));
+
+const MintingBox = styled(Box)(({ theme }) => ({
+  width: 120,
+  height: 120,
+  borderRadius: '50%',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  position: 'relative',
+  margin: '0 auto',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: -5,
+    left: -5,
+    right: -5,
+    bottom: -5,
+    borderRadius: '50%',
+    border: `2px solid ${alpha('#784af4', 0.3)}`,
+    animation: `${pulse} 2s infinite`,
+  }
+}));
+
+const TransactionPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(2),
+  marginTop: theme.spacing(2),
+  backgroundColor: alpha(theme.palette.background.paper, 0.5),
+  border: `1px solid ${alpha('#784af4', 0.2)}`,
+  borderRadius: theme.shape.borderRadius,
+  backdropFilter: 'blur(5px)',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    boxShadow: `0 5px 15px ${alpha('#784af4', 0.2)}`,
+    transform: 'translateY(-2px)',
+  },
+}));
+
+const SuccessBox = styled(Box)(({ theme }) => ({
+  width: 80,
+  height: 80,
+  borderRadius: '50%',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: theme.palette.success.main,
+  color: theme.palette.common.white,
+  margin: '0 auto',
+  animation: `${float} 3s ease-in-out infinite`,
+  boxShadow: `0 10px 25px ${alpha(theme.palette.success.main, 0.4)}`,
+  '& svg': {
+    fontSize: 40,
+  },
+}));
+
+const DidDisplay = styled(Box)(({ theme }) => ({
+  padding: theme.spacing(3),
+  marginTop: theme.spacing(3),
+  backgroundColor: alpha('#784af4', 0.05),
+  borderRadius: theme.shape.borderRadius * 1.5,
+  border: `1px solid ${alpha('#784af4', 0.2)}`,
+  fontFamily: 'monospace',
+  position: 'relative',
+  overflow: 'hidden',
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: `linear-gradient(45deg, ${alpha('#784af4', 0)}, ${alpha('#784af4', 0.1)}, ${alpha('#784af4', 0)})`,
+    backgroundSize: '200% 200%',
+    animation: 'shine 3s linear infinite',
+  },
+  '@keyframes shine': {
+    '0%': { backgroundPosition: '0% 0%' },
+    '100%': { backgroundPosition: '200% 200%' },
+  }
+}));
+
 export default function MintingStep() {
+  const theme = useTheme();
   const { state, updateDIDData, markStepAsCompleted } = useDIDContext();
   const [deploymentStage, setDeploymentStage] = useState<'preparing' | 'minting' | 'completed'>('preparing');
   const [animationProgress, setAnimationProgress] = useState(0);
@@ -231,87 +369,268 @@ export default function MintingStep() {
     switch (deploymentStage) {
       case 'preparing':
         return (
-          <div className="space-y-6 text-center">
-            <p className="text-gray-600 dark:text-gray-300">
-              Preparing your identity for minting...
-            </p>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-4">
-              <div 
-                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
-                style={{ width: `${animationProgress}%` }}
-              ></div>
-            </div>
-            <div className="flex flex-col items-center justify-center">
-              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-              <p className="text-sm text-gray-500">Preparing your digital identity...</p>
-            </div>
-          </div>
+          <Fade in={true} timeout={800}>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  mb: 3,
+                  background: `linear-gradient(90deg, ${theme.palette.text.primary}, #784af4)`,
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  fontWeight: 600
+                }}
+              >
+                Preparing Identity for Blockchain
+              </Typography>
+              
+              <MintingBox>
+                <CircularProgress 
+                  size={80} 
+                  thickness={3} 
+                  sx={{ 
+                    color: '#784af4',
+                    animation: `${glow} 3s infinite`
+                  }} 
+                />
+              </MintingBox>
+              
+              <Box sx={{ mt: 4, mb: 2, mx: 'auto', maxWidth: 500 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Preparing your digital identity...
+                </Typography>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={animationProgress} 
+                  sx={{ 
+                    height: 8, 
+                    borderRadius: 4,
+                    backgroundColor: alpha('#784af4', 0.1),
+                    '& .MuiLinearProgress-bar': {
+                      borderRadius: 4,
+                      background: `linear-gradient(90deg, #784af4, ${alpha('#784af4', 0.7)})`,
+                    }
+                  }} 
+                />
+              </Box>
+              
+              <Stack 
+                direction="row" 
+                spacing={1} 
+                sx={{ 
+                  justifyContent: 'center', 
+                  mt: 3,
+                  color: '#784af4'
+                }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  Initializing blockchain connection
+                </Typography>
+              </Stack>
+            </Box>
+          </Fade>
         );
       
       case 'minting':
         return (
-          <div className="space-y-6 text-center">
-            <p className="text-gray-600 dark:text-gray-300">
-              Minting your decentralized identity on the blockchain
-            </p>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-4">
-              <div 
-                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
-                style={{ width: `${animationProgress}%` }}
-              ></div>
-            </div>
-            <div className="flex flex-col items-center justify-center">
-              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-              <p className="text-base font-medium text-blue-600 dark:text-blue-400">{mintStatus}</p>
+          <Fade in={true} timeout={800}>
+            <StyledPaper elevation={2}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  textAlign: 'center',
+                  mb: 3,
+                  background: `linear-gradient(90deg, #784af4, ${alpha('#784af4', 0.7)})`,
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  fontWeight: 600
+                }}
+              >
+                Minting Your Decentralized Identity
+              </Typography>
+              
+              <Box sx={{ position: 'relative', mb: 4, mt: 2 }}>
+                <CircularProgress 
+                  variant="determinate"
+                  value={animationProgress}
+                  size={100}
+                  thickness={2}
+                  sx={{ 
+                    position: 'relative',
+                    zIndex: 1,
+                    color: '#784af4',
+                    display: 'block',
+                    mx: 'auto',
+                  }}
+                />
+                <Box
+                  sx={{
+                    top: 0,
+                    left: 0,
+                    bottom: 0,
+                    right: 0,
+                    position: 'absolute',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '100%',
+                    height: 100
+                  }}
+                >
+                  <Typography 
+                    variant="caption" 
+                    component="div"
+                    sx={{ 
+                      fontWeight: 'bold',
+                      color: '#784af4',
+                      fontSize: '1rem'
+                    }}
+                  >
+                    {`${Math.round(animationProgress)}%`}
+                  </Typography>
+                </Box>
+              </Box>
+              
+              <Typography 
+                variant="body1" 
+                sx={{ 
+                  textAlign: 'center', 
+                  mb: 3,
+                  color: '#784af4',
+                  fontWeight: 500
+                }}
+              >
+                {mintStatus}
+              </Typography>
               
               {txHash && (
-                <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-md max-w-md mx-auto overflow-hidden">
-                  <p className="text-xs text-gray-500 mb-1">Transaction Hash</p>
-                  <p className="text-xs font-mono break-all">{txHash}</p>
-                </div>
+                <TransactionPaper elevation={0}>
+                  <Stack spacing={1}>
+                    <Typography variant="caption" color="text.secondary">
+                      Transaction Hash
+                    </Typography>
+                    <Box sx={{ 
+                      p: 1.5, 
+                      borderRadius: 1, 
+                      bgcolor: alpha('#784af4', 0.05),
+                      fontFamily: 'monospace',
+                      fontSize: '0.75rem',
+                      wordBreak: 'break-all'
+                    }}>
+                      {txHash}
+                    </Box>
+                  </Stack>
+                </TransactionPaper>
               )}
               
               {tokenId && (
-                <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
-                  <p className="text-xs text-gray-500 mb-1">Token ID</p>
-                  <p className="text-sm font-medium">{tokenId}</p>
-                </div>
+                <TransactionPaper elevation={0}>
+                  <Stack spacing={1}>
+                    <Typography variant="caption" color="text.secondary">
+                      Token ID
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        fontWeight: 'medium',
+                        fontFamily: 'monospace',
+                        color: '#784af4'
+                      }}
+                    >
+                      {tokenId}
+                    </Typography>
+                  </Stack>
+                </TransactionPaper>
               )}
-            </div>
-          </div>
+            </StyledPaper>
+          </Fade>
         );
       
       case 'completed':
         return (
-          <div className="space-y-6 text-center">
-            <div className="flex items-center justify-center mb-4">
-              <div className="rounded-full bg-green-100 dark:bg-green-900 p-3">
-                <svg className="h-8 w-8 text-green-600 dark:text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-              </div>
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">DID Successfully Minted!</h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Your decentralized identifier has been minted on the blockchain.
-            </p>
-            
-            {txHash && (
-              <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-md max-w-md mx-auto">
-                <p className="text-xs text-gray-500 mb-1">Transaction Hash</p>
-                <p className="text-xs font-mono break-all">{txHash}</p>
-              </div>
-            )}
-            
-            {tokenId && (
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md max-w-md mx-auto">
-                <p className="text-xs text-gray-500 mb-1">Your Decentralized Identity (DID)</p>
-                <p className="text-sm font-medium font-mono">did:ryt:{tokenId}</p>
-              </div>
-            )}
+          <Fade in={true} timeout={800}>
+            <Box sx={{ textAlign: 'center' }}>
+              <SuccessBox>
+                <CheckCircleIcon />
+              </SuccessBox>
+              
+              <Typography 
+                variant="h5" 
+                sx={{ 
+                  mt: 3,
+                  mb: 2,
+                  fontWeight: 700,
+                  background: `linear-gradient(90deg, ${theme.palette.success.main}, #784af4)`,
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
+                DID Successfully Minted!
+              </Typography>
+              
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+                Your decentralized identifier has been successfully minted on the blockchain
+              </Typography>
+              
+              {txHash && (
+                <TransactionPaper elevation={0}>
+                  <Stack spacing={1} alignItems="flex-start">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <LinkIcon fontSize="small" sx={{ color: '#784af4' }} />
+                      <Typography variant="caption" color="text.secondary">
+                        Transaction Hash
+                      </Typography>
+                    </Box>
+                    <Box sx={{ 
+                      p: 1.5, 
+                      borderRadius: 1, 
+                      bgcolor: alpha('#784af4', 0.05),
+                      fontFamily: 'monospace',
+                      fontSize: '0.75rem',
+                      width: '100%',
+                      wordBreak: 'break-all'
+                    }}>
+                      {txHash}
+                    </Box>
+                  </Stack>
+                </TransactionPaper>
+              )}
+              
+              {tokenId && (
+                <DidDisplay>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                    Your Decentralized Identity (DID)
+                  </Typography>
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      fontFamily: 'monospace',
+                      color: '#784af4',
+                      fontWeight: 700,
+                      letterSpacing: 0.5
+                    }}
+                  >
+                    did:ryt:{tokenId}
+                  </Typography>
+                </DidDisplay>
+              )}
 
-            <p className="text-blue-600 text-sm mt-4">Click 'Next' to proceed to the finalization step.</p>
-          </div>
+              <Chip 
+                icon={<CheckCircleIcon />} 
+                label="Click 'Next' to proceed" 
+                color="primary" 
+                variant="outlined" 
+                sx={{ 
+                  mt: 4, 
+                  color: '#784af4', 
+                  borderColor: alpha('#784af4', 0.5),
+                  px: 2,
+                  py: 0.5,
+                  animation: `${pulse} 2s infinite`
+                }} 
+              />
+            </Box>
+          </Fade>
         );
       
       default:
@@ -320,15 +639,35 @@ export default function MintingStep() {
   };
   
   return (
-    <div className="w-full">
+    <Box sx={{ width: '100%', py: 2 }}>
       {renderContent()}
       
       {error && (
-        <div className="mt-6 p-3 bg-red-50 dark:bg-red-900/20 rounded-md text-red-700 dark:text-red-400 text-sm">
-          <p className="font-medium">Error</p>
-          <p>{error}</p>
-        </div>
+        <Fade in={true}>
+          <Box 
+            sx={{ 
+              mt: 4,
+              p: 2, 
+              borderRadius: 2,
+              bgcolor: alpha(theme.palette.error.main, 0.05),
+              border: `1px solid ${alpha(theme.palette.error.main, 0.1)}`,
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 1,
+            }}
+          >
+            <ErrorIcon color="error" sx={{ mt: 0.5 }} />
+            <Box>
+              <Typography variant="subtitle2" color="error.main" gutterBottom>
+                Error
+              </Typography>
+              <Typography variant="body2" color="error.main">
+                {error}
+              </Typography>
+            </Box>
+          </Box>
+        </Fade>
       )}
-    </div>
+    </Box>
   );
 } 
