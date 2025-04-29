@@ -572,7 +572,7 @@ export default function DIDProfileView() {
                       variant="outlined" 
                       size="small"
                       color="primary"
-                      onClick={() => window.open(`http://18.216.102.37:3001/transactions/${state.didData.txHash}`, '_blank')}
+                      onClick={() => window.open(`http://18.216.102.37:3001/transactions/${state.didData.transactionHash}`, '_blank')}
                     >
                       View on RYT Explorer
                     </Button>
