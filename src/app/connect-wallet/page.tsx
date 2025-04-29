@@ -5,6 +5,23 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ethers } from 'ethers';
 
+// Country flag mapping
+const countryFlags: Record<string, string> = {
+  pakistan: '/flags/pakistan-flag.svg',
+  panama: '/flags/panama-flag.svg',
+  costarica: '/flags/costa-rica-flag.svg',
+  // Default
+  default: '/pak.svg'
+};
+
+// Country name mapping
+const countryNames: Record<string, string> = {
+  pakistan: 'Pakistan',
+  panama: 'Panama',
+  costarica: 'Costa Rica',
+  default: 'Global'
+};
+
 // Add window.ethereum type declaration
 declare global {
   interface Window {
@@ -15,7 +32,16 @@ declare global {
 export default function ConnectWalletPage() {
   const [account, setAccount] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState<boolean>(true);
+  const [country, setCountry] = useState<string>('default');
   const router = useRouter();
+  
+  // Check for selected country from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const selectedCountry = localStorage.getItem('selectedCountry') || 'default';
+      setCountry(selectedCountry);
+    }
+  }, []);
   
   // Check if wallet is already connected on page load
   useEffect(() => {
@@ -71,8 +97,8 @@ export default function ConnectWalletPage() {
       {/* Background image */}
       <div className="absolute inset-0 z-0 opacity-20 animate-pulse">
         <Image 
-          src="/pak.svg"
-          alt="Background" 
+          src={countryFlags[country] || countryFlags.default}
+          alt={`${countryNames[country]} Flag Background`}
           fill
           style={{ objectFit: 'cover' }}
         />
@@ -87,7 +113,7 @@ export default function ConnectWalletPage() {
           }}
         >
           <Image 
-            src="/ryt-logo-color.svg"
+            src="/ryt-logo-white.svg"
             alt="RYT Logo"
             fill
             style={{ objectFit: 'contain' }}
@@ -109,7 +135,7 @@ export default function ConnectWalletPage() {
             animation: 'fadeIn 1s ease-out 0.5s both, slideUp 1s ease-out 0.5s both'
           }}
         >
-          To begin the DID creation process, please connect your wallet
+          To begin the DID creation process in {countryNames[country]}, please connect your wallet
         </p>
         
         <div 

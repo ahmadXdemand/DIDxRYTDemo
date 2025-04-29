@@ -1,13 +1,37 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
+// Country flag mapping
+const countryFlags: Record<string, string> = {
+  pakistan: '/flags/pakistan-flag.svg',
+  panama: '/flags/panama-flag.svg',
+  costarica: '/flags/costa-rica-flag.svg',
+  // Default
+  default: '/pak.svg'
+};
+
+// Country name mapping
+const countryNames: Record<string, string> = {
+  pakistan: 'Pakistan',
+  panama: 'Panama',
+  costarica: 'Costa Rica',
+  default: 'Global'
+};
+
 export default function WelcomePage() {
   const router = useRouter();
+  const [country, setCountry] = useState<string>('default');
   
   useEffect(() => {
+    // Check for selected country from localStorage
+    if (typeof window !== 'undefined') {
+      const selectedCountry = localStorage.getItem('selectedCountry') || 'default';
+      setCountry(selectedCountry);
+    }
+    
     // Redirect to wallet connection page after 5 seconds
     const timer = setTimeout(() => {
       router.push('/connect-wallet');
@@ -21,8 +45,8 @@ export default function WelcomePage() {
       {/* Background image */}
       <div className="absolute inset-0 z-0 opacity-20 animate-pulse">
         <Image 
-          src="/pak.svg"
-          alt="Background" 
+          src={countryFlags[country] || countryFlags.default}
+          alt={`${countryNames[country]} Flag Background`}
           fill
           style={{ objectFit: 'cover' }}
         />
@@ -37,7 +61,7 @@ export default function WelcomePage() {
           }}
         >
           <Image 
-            src="/ryt-logo-color.svg"
+            src="/ryt-logo-white.svg"
             alt="RYT Logo"
             fill
             style={{ objectFit: 'contain' }}
@@ -59,7 +83,7 @@ export default function WelcomePage() {
             animation: 'fadeIn 1s ease-out 0.5s both, slideUp 1s ease-out 0.5s both'
           }}
         >
-          Securing Identity On Chain
+          Securing Identity On Chain in {countryNames[country]}
         </p>
         
         <div 

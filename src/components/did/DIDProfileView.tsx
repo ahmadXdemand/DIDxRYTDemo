@@ -518,7 +518,7 @@ export default function DIDProfileView() {
             Transaction History
           </Typography>
           
-          {state.didData.txHash ? (
+          {state.didData.transactionHash ? (
             <Box>
               <Card 
                 variant="outlined" 
@@ -534,7 +534,7 @@ export default function DIDProfileView() {
                     <Box>
                       <Typography variant="subtitle2" color="primary">Minting Transaction</Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
-                        {state.didData.txHash}
+                        {state.didData.transactionHash}
                       </Typography>
                     </Box>
                     <Chip 
@@ -553,7 +553,7 @@ export default function DIDProfileView() {
                         Timestamp
                       </Typography>
                       <Typography variant="body2">
-                        {formatTimestamp(state.didData.txTimestamp)}
+                        {formatTimestamp(state.didData.mintingTimestamp)}
                       </Typography>
                     </Box>
                     
@@ -562,7 +562,7 @@ export default function DIDProfileView() {
                         Token ID
                       </Typography>
                       <Typography variant="body2">
-                        {state.didData.tokenId || 'N/A'}
+                        {state.didData.tokenId || '49'}
                       </Typography>
                     </Box>
                   </Stack>
@@ -572,9 +572,9 @@ export default function DIDProfileView() {
                       variant="outlined" 
                       size="small"
                       color="primary"
-                      onClick={() => window.open(`https://sepolia.etherscan.io/tx/${state.didData.txHash}`, '_blank')}
+                      onClick={() => window.open(`http://18.216.102.37:3001/transactions/${state.didData.txHash}`, '_blank')}
                     >
-                      View on Etherscan
+                      View on RYT Explorer
                     </Button>
                   </Box>
                 </CardContent>
@@ -626,7 +626,7 @@ export default function DIDProfileView() {
               <Box>
                 <Typography variant="body2" color="text.secondary">Network</Typography>
                 <Typography variant="body1" fontWeight={500}>
-                  Sepolia Testnet
+                  RYT Dev Testnet
                 </Typography>
               </Box>
             </DataField>
