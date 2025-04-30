@@ -26,6 +26,8 @@ import MintingStep from '../../components/did/MintingStep';
 import FinalizationStep from '../../components/did/FinalizationStep';
 import DIDStepper from '../../components/did/DIDStepper';
 import DIDProfileView from '../../components/did/DIDProfileView';
+import RecaptchaStep from './RecaptchaStep';
+import VerificationScoreDisplay from '../../components/did/VerificationScoreDisplay';
 
 // Import DID context provider
 import { DIDProvider, useDIDContext } from '../../context/DIDContext';
@@ -74,6 +76,17 @@ function DIDCreationContent() {
     switch (state.currentStep) {
       case CreationStep.WALLET_CONNECTION:
         return <WalletConnectionStep />;
+      
+      case CreationStep.RECAPTCHA:
+        return (
+          <RecaptchaStep 
+            onComplete={() => {
+              updateDIDData({ captchaCompleted: true });
+              markStepAsCompleted(true);
+            }} 
+            isLoading={isLoading}
+          />
+        );
       
       case CreationStep.IMAGE_SELECTION:
         return <ImageSelectionStep />;
@@ -166,12 +179,15 @@ function DIDCreationContent() {
         <p className="text-gray-600 dark:text-gray-400 text-center mb-8">Secure your digital identity on the blockchain</p>
         
         {/* Replace progress bar with Material-UI Stepper */}
-        <div className="mb-8">
+        <div className="mb-6">
           <DIDStepper 
             currentStep={state.currentStep}
             steps={steps}
           />
         </div>
+        
+        {/* Add verification score display */}
+        <VerificationScoreDisplay />
         
         {/* Step content */}
         <div className="mb-8 p-4 bg-gray-50 dark:bg-gray-850 rounded-lg min-h-[300px] flex items-center justify-center">
