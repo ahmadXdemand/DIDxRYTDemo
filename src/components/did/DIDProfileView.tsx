@@ -377,14 +377,14 @@ export default function DIDProfileView() {
           )}
           
           {/* Confidence score if available */}
-          {state.didData.documentDetails && state.didData.documentDetails.confidence && (
+          {/* {state.didData.documentDetails && state.didVerificationScore && (
             <Box sx={{ mt: 4 }}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
                 Verification Confidence
               </Typography>
               <LinearProgress
                 variant="determinate"
-                value={state.didData.documentDetails.confidence * 100}
+                value={state.didVerificationScore}
                 sx={{
                   height: 8,
                   borderRadius: 4,
@@ -404,7 +404,7 @@ export default function DIDProfileView() {
                 {Math.round(state.didData.documentDetails.confidence * 100)}% confidence
               </Typography>
             </Box>
-          )}
+          )} */}
         </ProfileSection>
       </Box>
       

@@ -13,17 +13,25 @@ declare global {
 
 
 export default function WalletConnectionStep() {
-  const { state, updateDIDData, markStepAsCompleted } = useDIDContext();
+  const { state, updateDIDData, markStepAsCompleted, goToNextStep, updateVerificationScore } = useDIDContext();
   const [account, setAccount] = useState<string | null>(state.didData.walletAddress || null);
   const [isLoading, setIsLoading] = useState(false);
   
-  // If wallet is already connected, mark step as complete only once
+  // If wallet is already connected, mark step as complete and go to next step
   useEffect(() => {
     if (account && !state.isStepCompleted) {
       updateDIDData({ walletAddress: account });
       markStepAsCompleted(true);
+      // Set initial verification score to 10
+      updateVerificationScore(10);
+      // Automatically move to the next step (RECAPTCHA) after a short delay
+      const timer = setTimeout(() => {
+        goToNextStep();
+      }, 1000);
+      
+      return () => clearTimeout(timer);
     }
-  }, [account, state.isStepCompleted, updateDIDData, markStepAsCompleted]);
+  }, [account, state.isStepCompleted, updateDIDData, markStepAsCompleted, goToNextStep, updateVerificationScore]);
   
   const connectWallet = async () => {
     if (window.ethereum) {
@@ -35,6 +43,8 @@ export default function WalletConnectionStep() {
         const address = await signer.getAddress();
         setAccount(address);
         updateDIDData({ walletAddress: address });
+        // Set initial verification score to 10
+        updateVerificationScore(10);
         markStepAsCompleted(true);
       } catch (err) {
         console.error("User denied wallet connection", err);
@@ -64,7 +74,7 @@ export default function WalletConnectionStep() {
       ) : (
         <>
           <p className="text-gray-600 dark:text-gray-300">
-            Your wallet has been connected. You can proceed to the next step.
+            Your wallet has been connected. Proceeding to security verification...
           </p>
           <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg text-sm font-mono break-all">
             {account}

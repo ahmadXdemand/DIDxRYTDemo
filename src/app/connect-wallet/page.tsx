@@ -19,8 +19,6 @@ import {
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import NetworkWifiIcon from '@mui/icons-material/NetworkWifi';
-import SecurityIcon from '@mui/icons-material/Security';
-import ReCAPTCHA from "react-google-recaptcha";
 
 // Country flag mapping
 const countryFlags: Record<string, string> = {
@@ -176,38 +174,13 @@ const ProgressContainer = styled(Box)(({ theme }) => ({
   }
 }));
 
-const ContinueButton = styled(Button)(({ theme }) => ({
-  backgroundColor: '#5e35b1', // Purple theme color
-  color: 'white',
-  padding: '12px 32px',
-  borderRadius: '32px',
-  fontSize: '1.1rem',
-  fontWeight: 600,
-  letterSpacing: '0.5px',
-  textTransform: 'none',
-  position: 'relative',
-  overflow: 'hidden',
-  transition: 'all 0.3s ease',
-  boxShadow: '0 10px 20px rgba(94, 53, 177, 0.3)',
-  '&:hover': {
-    backgroundColor: '#4527a0',
-    transform: 'translateY(-3px)',
-    boxShadow: '0 15px 30px rgba(94, 53, 177, 0.4)',
-  },
-  '&:disabled': {
-    backgroundColor: alpha('#5e35b1', 0.5),
-    color: alpha('#ffffff', 0.7),
-  }
-}));
-
 // Main component
 export default function ConnectWalletPage() {
   const [account, setAccount] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState<boolean>(true);
   const [country, setCountry] = useState<string>('default');
   const [loadingWallet, setLoadingWallet] = useState<boolean>(false);
-  const [captchaVerified, setCaptchaVerified] = useState<boolean>(false);
-  const [showCaptcha, setShowCaptcha] = useState<boolean>(false);
+  const [redirecting, setRedirecting] = useState<boolean>(false);
   const router = useRouter();
   
   // Check for selected country from localStorage
@@ -227,7 +200,11 @@ export default function ConnectWalletPage() {
           const accounts = await window.ethereum.request({ method: 'eth_accounts' });
           if (accounts && accounts.length > 0) {
             setAccount(accounts[0]);
-            setShowCaptcha(true);
+            setRedirecting(true);
+            // Redirect to createDID page after a short delay
+            setTimeout(() => {
+              router.push('/createDID');
+            }, 1500);
           }
         } catch (err) {
           console.error("Error checking wallet connection:", err);
@@ -252,7 +229,12 @@ export default function ConnectWalletPage() {
         const address = await signer.getAddress();
         setAccount(address);
         setLoadingWallet(false);
-        setShowCaptcha(true);
+        setRedirecting(true);
+        
+        // Redirect to createDID page after successful connection
+        setTimeout(() => {
+          router.push('/createDID');
+        }, 1500);
       } catch (err) {
         console.error("User denied wallet connection", err);
         setLoadingWallet(false);
@@ -260,16 +242,6 @@ export default function ConnectWalletPage() {
     } else {
       alert("MetaMask not detected. Install the extension first.");
     }
-  };
-  
-  const handleCaptchaVerification = (value: string | null) => {
-    if (value) {
-      setCaptchaVerified(true);
-    }
-  };
-
-  const handleContinue = () => {
-    router.push('/createDID');
   };
   
   return (
@@ -550,53 +522,11 @@ export default function ConnectWalletPage() {
                     }}
                   />
                   
-                  {showCaptcha && (
-                    <Box sx={{ 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      alignItems: 'center',
-                      gap: 3,
-                      mt: 1,
-                      mb: 3
-                    }}>
-                      <Typography sx={{ color: alpha('#fff', 0.9), fontWeight: 500 }}>
-                        Please complete the verification below
-                      </Typography>
-                      
-                      <Box sx={{ 
-                        background: alpha('#ffffff', 0.15), 
-                        padding: 2, 
-                        borderRadius: 2,
-                        display: 'flex',
-                        justifyContent: 'center' 
-                      }}>
-                        <ReCAPTCHA
-                          sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI" // Replace with your actual site key
-                          onChange={handleCaptchaVerification}
-                          theme="dark"
-                        />
-                      </Box>
-                      
-                      <ContinueButton
-                        variant="contained"
-                        onClick={handleContinue}
-                        disabled={!captchaVerified}
-                        startIcon={<SecurityIcon />}
-                      >
-                        Continue to DID Creation
-                      </ContinueButton>
-                    </Box>
-                  )}
+                  <Typography sx={{ color: alpha('#fff', 0.8) }}>
+                    Redirecting to DID creation...
+                  </Typography>
                   
-                  {!showCaptcha && (
-                    <>
-                      <Typography sx={{ color: alpha('#fff', 0.8) }}>
-                        Redirecting to DID creation...
-                      </Typography>
-                      
-                      <ProgressContainer />
-                    </>
-                  )}
+                  <ProgressContainer />
                 </Box>
               )}
             </Paper>
