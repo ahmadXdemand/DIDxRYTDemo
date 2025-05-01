@@ -7,6 +7,7 @@ interface DIDContextState {
   didData: Record<string, any>;
   isStepCompleted: boolean;
   didVerificationScore: number;
+  skippedIDVerification: boolean;
 }
 
 // Define the context interface with state and actions
@@ -18,6 +19,7 @@ interface DIDContextType {
   goToNextStep: () => void;
   goToPreviousStep: () => void;
   updateVerificationScore: (score: number) => void;
+  skipIDVerification: () => void;
 }
 
 // Create the context with a default value
@@ -36,7 +38,8 @@ export const DIDProvider: React.FC<DIDProviderProps> = ({ children }) => {
       captchaCompleted: false
     },
     isStepCompleted: false,
-    didVerificationScore: 10
+    didVerificationScore: 10,
+    skippedIDVerification: false
   });
 
   // Set the current step - memoized to prevent unnecessary re-renders
@@ -83,6 +86,67 @@ export const DIDProvider: React.FC<DIDProviderProps> = ({ children }) => {
     }));
   }, []);
 
+  // Skip ID verification and jump to VERIFICATION step
+  const skipIDVerification = useCallback(() => {
+    setState(prevState => {
+      // Set demo data for skipped verification
+      const newData = {
+        ...prevState.didData,
+        isDemo: true,
+        demoData: {
+          firstName: 'John',
+          lastName: 'Doe',
+          dateOfBirth: '1990-01-01',
+          nationality: 'International',
+          documentType: 'None',
+          documentNumber: 'DEMO-12345'
+        }
+      };
+      
+      //so for your understanding what i did here is if the user skiped the id selection he will not get the points for the id verification. 
+      // if he is on liveness step and doen't take his/her selfie then the i will check if the user have not done the id selection too he will get the 15 points
+      //the third check is if the user is skiping the image only but has done his id he should be give 40 scores on the score point. 
+      if(prevState.currentStep === CreationStep.IMAGE_SELECTION){
+        return {
+          ...prevState,
+          currentStep: CreationStep.LIVENESS_VERIFICATION,  // Skip to liveness verification step
+          didData: newData,
+          isStepCompleted: true,  // Mark as completed so we can proceed
+          didVerificationScore: 25,  // Reduced score for skipped verification
+          skippedIDVerification: true
+        };
+      } else if(prevState.currentStep === CreationStep.LIVENESS_VERIFICATION && prevState.skippedIDVerification){
+        return {
+          ...prevState,
+          currentStep: CreationStep.VERIFICATION,  // Skip to verification step
+          didData: newData,
+          isStepCompleted: true,  // Mark as completed so we can proceed
+          didVerificationScore: 25,  // Reduced score for skipped verification
+          skippedIDVerification: true
+        };
+      } else if(prevState.currentStep === CreationStep.LIVENESS_VERIFICATION && !prevState.skippedIDVerification){
+        return {
+          ...prevState,
+          currentStep: CreationStep.EXTRACTION,  // Skip to extraction step
+          didData: newData,
+          isStepCompleted: true,  // Mark as completed so we can proceed
+          didVerificationScore: 40,  // Reduced score for skipped verification
+          skippedIDVerification: true
+        };
+      }
+
+      // Default return for any other case
+      return {
+        ...prevState,
+        currentStep: CreationStep.VERIFICATION,  // Default to verification step
+        didData: newData,
+        isStepCompleted: true,
+        didVerificationScore: 25,
+        skippedIDVerification: true
+      };
+    });
+  }, []);
+
   // Mark the current step as completed - memoized to prevent unnecessary re-renders
   const markStepAsCompleted = useCallback((completed: boolean) => {
     setState(prevState => {
@@ -103,7 +167,15 @@ export const DIDProvider: React.FC<DIDProviderProps> = ({ children }) => {
       setState(prevState => {
         // Update verification score based on the next step
         let score = prevState.didVerificationScore;
-        const nextStep = prevState.currentStep + 1;
+        let nextStep = prevState.currentStep + 1;
+        
+        // If we've skipped ID verification and we're currently at IMAGE_SELECTION,
+        // skip to VERIFICATION step
+        if (prevState.skippedIDVerification && 
+            (nextStep === CreationStep.LIVENESS_VERIFICATION || 
+             nextStep === CreationStep.EXTRACTION)) {
+          nextStep = CreationStep.VERIFICATION;
+        }
         
         switch (nextStep) {
           case CreationStep.WALLET_CONNECTION:
@@ -122,10 +194,10 @@ export const DIDProvider: React.FC<DIDProviderProps> = ({ children }) => {
             score = 60;
             break;
           case CreationStep.VERIFICATION:
-            score = 75;
+            score = prevState.skippedIDVerification ? 40 : 75;
             break;
           case CreationStep.MINTING:
-            score = 92;
+            score = prevState.skippedIDVerification ? 60 : 92;
             break;
           case CreationStep.COMPLETED:
             score = 100;
@@ -152,9 +224,18 @@ export const DIDProvider: React.FC<DIDProviderProps> = ({ children }) => {
           newDidData.captchaCompleted = false;
         }
         
+        // Calculate previous step, accounting for skipped steps
+        let prevStep = prevState.currentStep - 1;
+        
+        // If we're at VERIFICATION and we skipped the ID verification steps,
+        // go back to IMAGE_SELECTION
+        if (prevState.skippedIDVerification && 
+            prevState.currentStep === CreationStep.VERIFICATION) {
+          prevStep = CreationStep.IMAGE_SELECTION;
+        }
+        
         // Update verification score based on the previous step
         let score = prevState.didVerificationScore;
-        const prevStep = prevState.currentStep - 1;
         
         switch (prevStep) {
           case CreationStep.WALLET_CONNECTION:
@@ -173,10 +254,10 @@ export const DIDProvider: React.FC<DIDProviderProps> = ({ children }) => {
             score = 60;
             break;
           case CreationStep.VERIFICATION:
-            score = 75;
+            score = prevState.skippedIDVerification ? 40 : 75;
             break;
           case CreationStep.MINTING:
-            score = 92;
+            score = prevState.skippedIDVerification ? 60 : 92;
             break;
         }
         
@@ -199,7 +280,8 @@ export const DIDProvider: React.FC<DIDProviderProps> = ({ children }) => {
     markStepAsCompleted,
     goToNextStep,
     goToPreviousStep,
-    updateVerificationScore
+    updateVerificationScore,
+    skipIDVerification
   }), [
     state,
     setCurrentStep,
@@ -207,7 +289,8 @@ export const DIDProvider: React.FC<DIDProviderProps> = ({ children }) => {
     markStepAsCompleted,
     goToNextStep,
     goToPreviousStep,
-    updateVerificationScore
+    updateVerificationScore,
+    skipIDVerification
   ]);
 
   return <DIDContext.Provider value={value}>{children}</DIDContext.Provider>;

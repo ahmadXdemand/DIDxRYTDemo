@@ -20,14 +20,18 @@ import {
   alpha,
   styled,
   Chip,
-  Divider
+  Divider,
+  Stack,
+  Tooltip
 } from '@mui/material';
 import { 
   CloudUpload as CloudUploadIcon,
   FileUpload as FileUploadIcon,
   CheckCircle as CheckCircleIcon,
   ChangeCircle as ChangeCircleIcon,
-  PhotoCamera as PhotoCameraIcon
+  PhotoCamera as PhotoCameraIcon,
+  SkipNext as SkipNextIcon,
+  InfoOutlined as InfoOutlinedIcon
 } from '@mui/icons-material';
 
 // Styled components
@@ -77,8 +81,22 @@ const PreviewOverlay = styled(Box)(({ theme }) => ({
   zIndex: 1,
 }));
 
+// Add a new styled component for the skip button
+const SkipButton = styled(Button)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  marginBottom: theme.spacing(1),
+  borderRadius: theme.shape.borderRadius * 4,
+  backgroundColor: 'transparent',
+  color: theme.palette.grey[600],
+  border: `1px solid ${theme.palette.grey[300]}`,
+  '&:hover': {
+    backgroundColor: alpha(theme.palette.grey[500], 0.1),
+    borderColor: theme.palette.grey[400],
+  },
+}));
+
 export default function ImageSelectionStep() {
-  const { state, updateDIDData, markStepAsCompleted } = useDIDContext();
+  const { state, updateDIDData, markStepAsCompleted, skipIDVerification } = useDIDContext();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(state.didData.imageData || null);
   const [isUploading, setIsUploading] = useState(false);
@@ -202,6 +220,34 @@ export default function ImageSelectionStep() {
                 sx={{ mt: 2 }} 
               />
             </DropzoneContainer>
+            
+            {/* Skip Verification option */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 4 }}>
+              <Divider sx={{ width: '80%', mb: 3 }}>
+                <Typography variant="caption" color="text.secondary">OR</Typography>
+              </Divider>
+              
+              <Stack direction="column" spacing={1} alignItems="center">
+                <Tooltip 
+                  title="Skip ID verification and use demo data. Your verification score will be lower." 
+                  arrow
+                  placement="top"
+                >
+                  <SkipButton
+                    onClick={skipIDVerification}
+                    startIcon={<SkipNextIcon />}
+                    endIcon={<InfoOutlinedIcon fontSize="small" />}
+                    size="large"
+                  >
+                    Skip ID Verification
+                  </SkipButton>
+                </Tooltip>
+                <Typography variant="caption" color="text.secondary" align="center" sx={{ maxWidth: 400 }}>
+                  Note: Skipping ID verification will result in a lower security score 
+                  and will use demo data instead of your real information.
+                </Typography>
+              </Stack>
+            </Box>
           </Box>
         </Fade>
       ) : (

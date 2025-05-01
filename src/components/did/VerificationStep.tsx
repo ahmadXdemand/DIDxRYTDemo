@@ -16,14 +16,17 @@ import {
   useTheme,
   alpha,
   styled,
-  keyframes
+  keyframes,
+  Alert,
+  AlertTitle
 } from '@mui/material';
 import { 
   VerifiedUser as VerifiedUserIcon,
   Security as SecurityIcon,
   Shield as ShieldIcon,
   CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon
+  Error as ErrorIcon,
+  Info as InfoIcon
 } from '@mui/icons-material';
 
 // Animation keyframes
@@ -110,6 +113,9 @@ export default function VerificationStep() {
   const [error, setError] = useState<string | null>(null);
   const theme = useTheme();
   
+  // Check if demo mode is active (skipped ID verification without document details)
+  const isDemoMode = state.skippedIDVerification && !state.didData.documentDetails;
+  
   // Load extracted data from context and start verification process
   useEffect(() => {
     let mounted = true;
@@ -118,6 +124,19 @@ export default function VerificationStep() {
         // Load document details
         if (state.didData.documentDetails) {
           setVerifiedData(state.didData.documentDetails as IDInformation);
+        } else if (state.skippedIDVerification && state.didData.demoData) {
+          // If ID verification was skipped, use demo data
+          const demoData = state.didData.demoData;
+          setVerifiedData({
+            fullName: `${demoData.firstName} ${demoData.lastName}`,
+            dateOfBirth: demoData.dateOfBirth,
+            idNumber: demoData.documentNumber,
+            issuingCountry: demoData.nationality,
+            gender: 'Not Specified',
+            metadata: {
+              documentType: demoData.documentType
+            }
+          } as unknown as IDInformation);
         }
         
         setIsVerifying(true);
@@ -144,7 +163,22 @@ export default function VerificationStep() {
         clearInterval(verifyingInterval);
         
         // Get the data to verify
-        const dataToVerify = state.didData.documentDetails || {};
+        let dataToVerify;
+        
+        if (isDemoMode) {
+          // Use demo data if verification was skipped
+          const demoData = state.didData.demoData;
+          dataToVerify = {
+            fullName: `${demoData.firstName} ${demoData.lastName}`,
+            idNumber: demoData.documentNumber,
+            metadata: {
+              documentType: demoData.documentType
+            }
+          };
+        } else {
+          // Use extracted data
+          dataToVerify = state.didData.documentDetails || {};
+        }
         
         // Update the DID context with verified information
         updateDIDData({
@@ -174,7 +208,7 @@ export default function VerificationStep() {
     return () => {
       mounted = false;
     };
-  }, [state.didData.documentDetails, updateDIDData, markStepAsCompleted, state.didData]);
+  }, [state.didData.documentDetails, updateDIDData, markStepAsCompleted, state.didData, state.skippedIDVerification, isDemoMode]);
   
   if (!verifiedData && !isVerifying) {
     return (
@@ -220,17 +254,39 @@ export default function VerificationStep() {
               Your identity information has been verified and is ready for the next step.
             </Typography>
             
+            {isDemoMode && (
+              <Alert 
+                severity="info" 
+                variant="outlined"
+                icon={<InfoIcon />}
+                sx={{ 
+                  mt: 2, 
+                  maxWidth: 450, 
+                  textAlign: 'left',
+                  borderRadius: 2,
+                  backgroundColor: alpha(theme.palette.info.main, 0.05)
+                }}
+              >
+                <AlertTitle>Using Demo Data</AlertTitle>
+                You've chosen to skip ID verification. Demo information is being used instead of 
+                real document verification. This results in a lower verification score.
+              </Alert>
+            )}
+            
             <Box sx={{ mt: 2 }}>
               <Chip 
-                label="Verified & Secured" 
-                color="primary" 
+                label={isDemoMode ? "Demo Mode" : "Verified & Secured"} 
+                color={isDemoMode ? "secondary" : "primary"} 
                 icon={<ShieldIcon />}
                 sx={{ 
                   px: 2, 
                   py: 3,
                   borderRadius: '16px',
                   fontWeight: 500,
-                  boxShadow: `0 4px 8px ${alpha(theme.palette.primary.main, 0.3)}`
+                  boxShadow: `0 4px 8px ${alpha(
+                    isDemoMode ? theme.palette.secondary.main : theme.palette.primary.main, 
+                    0.3
+                  )}`
                 }}
               />
             </Box>
@@ -267,12 +323,27 @@ export default function VerificationStep() {
             WebkitTextFillColor: 'transparent'
           }}
         >
-          Verifying Your Identity
+          {isDemoMode ? "Preparing Demo Profile" : "Verifying Your Identity"}
         </Typography>
         
         <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', maxWidth: 450, mx: 'auto' }}>
-          Please wait while our advanced verification system analyzes and validates your information.
+          {isDemoMode
+            ? "Setting up your demo profile with sample information." 
+            : "Please wait while our advanced verification system analyzes and validates your information."}
         </Typography>
+        
+        {isDemoMode && (
+          <Alert 
+            severity="info" 
+            variant="outlined" 
+            sx={{ 
+              maxWidth: 450, 
+              textAlign: 'left' 
+            }}
+          >
+            You've chosen to skip ID verification. Demo data will be used.
+          </Alert>
+        )}
         
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
           <GlowingIcon>
@@ -283,7 +354,7 @@ export default function VerificationStep() {
         <Box sx={{ width: '100%', maxWidth: 480, mx: 'auto', mb: 2 }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
             <VerifiedUserIcon fontSize="small" sx={{ mr: 1, color: 'primary.main' }} />
-            Verifying document authenticity...
+            {isDemoMode ? "Preparing demo profile..." : "Verifying document authenticity..."}
           </Typography>
           <LinearProgress 
             variant="determinate" 
@@ -318,10 +389,12 @@ export default function VerificationStep() {
             />
             <Box>
               <Typography variant="body2" color="text.primary" fontWeight={500}>
-                Security Verification in Progress
+                {isDemoMode ? "Demo Profile Generation" : "Security Verification in Progress"}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Multi-factor document analysis underway...
+                {isDemoMode
+                  ? "Creating secure demo credentials..." 
+                  : "Multi-factor document analysis underway..."}
               </Typography>
             </Box>
           </Stack>

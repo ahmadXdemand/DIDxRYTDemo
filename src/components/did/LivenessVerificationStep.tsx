@@ -22,13 +22,16 @@ import {
   styled,
   Tooltip,
   Backdrop,
+  Divider
 } from '@mui/material';
 import { 
   CameraAlt as CameraIcon,
   RestartAlt as RetakeIcon,
   FaceRetouchingNatural as FaceIcon,
   Check as CheckIcon,
-  Cancel as CancelIcon
+  Cancel as CancelIcon,
+  SkipNext as SkipNextIcon,
+  InfoOutlined as InfoOutlinedIcon
 } from '@mui/icons-material';
 
 // Styled components
@@ -120,8 +123,22 @@ const PulsingCircle = styled(Box)(({ theme }) => ({
   },
 }));
 
+// Add a new styled component for the skip button
+const SkipButton = styled(Button)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  marginBottom: theme.spacing(1),
+  borderRadius: theme.shape.borderRadius * 4,
+  backgroundColor: 'transparent',
+  color: theme.palette.grey[600],
+  border: `1px solid ${theme.palette.grey[300]}`,
+  '&:hover': {
+    backgroundColor: alpha(theme.palette.grey[500], 0.1),
+    borderColor: theme.palette.grey[400],
+  },
+}));
+
 export default function LivenessVerificationStep() {
-  const { state, updateDIDData, markStepAsCompleted } = useDIDContext();
+  const { state, updateDIDData, markStepAsCompleted, skipIDVerification } = useDIDContext();
   const [showCamera, setShowCamera] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(state.didData.livenessImage || null);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -298,6 +315,36 @@ export default function LivenessVerificationStep() {
             >
               Start Verification
             </Button>
+          )}
+          
+          {/* Skip Verification option */}
+          {!showCamera && !capturedImage && !isUploading && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 3 }}>
+              <Divider sx={{ width: '80%', mb: 3 }}>
+                <Typography variant="caption" color="text.secondary">OR</Typography>
+              </Divider>
+              
+              <Stack direction="column" spacing={1} alignItems="center">
+                <Tooltip 
+                  title="Skip liveness verification and use demo data. Your verification score will be lower." 
+                  arrow
+                  placement="top"
+                >
+                  <SkipButton
+                    onClick={skipIDVerification}
+                    startIcon={<SkipNextIcon />}
+                    endIcon={<InfoOutlinedIcon fontSize="small" />}
+                    size="large"
+                  >
+                    Skip Liveness Verification
+                  </SkipButton>
+                </Tooltip>
+                <Typography variant="caption" color="text.secondary" align="center" sx={{ maxWidth: 400 }}>
+                  Note: Skipping verification will result in a lower security score 
+                  and will use demo data instead of your real information.
+                </Typography>
+              </Stack>
+            </Box>
           )}
         </Box>
       </Stack>
